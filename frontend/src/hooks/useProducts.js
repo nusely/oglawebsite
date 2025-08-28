@@ -1,0 +1,125 @@
+import { useState, useEffect, createContext, useContext } from 'react';
+import { productService, brandService, mockData } from '../services/productService';
+
+// Create context for global product state
+const ProductContext = createContext();
+
+// Custom hook to use product context
+export const useProducts = () => {
+  const context = useContext(ProductContext);
+  if (!context) {
+    throw new Error('useProducts must be used within a ProductProvider');
+  }
+  return context;
+};
+
+// Product provider component
+export const ProductProvider = ({ children }) => {
+  const [products, setProducts] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Load initial data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        
+        // Try to fetch from API first, fallback to mock data
+        try {
+          const [brandsData, productsData] = await Promise.all([
+            brandService.getBrands(),
+            productService.getProducts()
+          ]);
+          
+          setBrands(brandsData);
+          setProducts(productsData);
+        } catch (apiError) {
+          console.log('API not available, using mock data:', apiError.message);
+          // Use mock data for development
+          setBrands(mockData.brands);
+          setProducts(mockData.products);
+        }
+        
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+        console.error('Error loading data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Get products by brand
+  const getProductsByBrand = (brandId) => {
+    return products.filter(product => product.brandId === brandId);
+  };
+
+  // Get featured products
+  const getFeaturedProducts = () => {
+    return products.filter(product => product.isFeatured);
+  };
+
+  // Get product by slug
+  const getProductBySlug = (slug) => {
+    return products.find(product => product.slug === slug);
+  };
+
+  // Get brand by slug
+  const getBrandBySlug = (slug) => {
+    return brands.find(brand => brand.slug === slug);
+  };
+
+  // Search products
+  const searchProducts = (searchTerm, filters = {}) => {
+    let filteredProducts = products;
+
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filteredProducts = filteredProducts.filter(product =>
+        product.name.toLowerCase().includes(term) ||
+        product.description.toLowerCase().includes(term) ||
+        product.shortDescription.toLowerCase().includes(term)
+      );
+    }
+
+    // Apply brand filter
+    if (filters.brandId) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.brandId === filters.brandId
+      );
+    }
+
+    // Apply featured filter
+    if (filters.featured) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.isFeatured
+      );
+    }
+
+    return filteredProducts;
+  };
+
+  const value = {
+    products,
+    brands,
+    loading,
+    error,
+    getProductsByBrand,
+    getFeaturedProducts,
+    getProductBySlug,
+    getBrandBySlug,
+    searchProducts
+  };
+
+  return (
+    <ProductContext.Provider value={value}>
+      {children}
+    </ProductContext.Provider>
+  );
+};
