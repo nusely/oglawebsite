@@ -14,16 +14,19 @@ import {
   BrandStorySection,
   IngredientPuritySection,
   ProductGridSection,
+  LaVeedaProductShowcase,
   
   // AfriSmocks sections
   AfriSmocksHeroSection,
   AfriSmocksCollectionSection,
   AfriSmocksCraftsmanshipSection,
+  AfriSmocksProductShowcase,
   
   // OgriBusiness sections
   OgriBusinessHeroSection,
   OgriBusinessQualitySection,
   OgriBusinessFarmingSection,
+  OgriBusinessProductShowcase,
   
   // Shared sections
   CTASection,
@@ -32,7 +35,7 @@ import {
 
 const BrandPage = () => {
   const { brandSlug } = useParams();
-  const { getBrandBySlug, getProductsByBrand } = useProducts();
+  const { getBrandBySlug, getProductsByBrand, products } = useProducts();
   const { scrollYProgress } = useScroll();
   const scaleTransform = useTransform(scrollYProgress, [0, 1], ['scale(1)', 'scale(1.1)']);
   
@@ -105,9 +108,9 @@ const BrandPage = () => {
           customLogo={brandData.customLogo}
         />
 
-        {/* Product Highlights Section */}
-        <ProductHighlightsSection
-          products={brandProducts}
+        {/* La Veeda Product Showcase */}
+        <LaVeedaProductShowcase
+          products={products}
           brandColors={brandData.brandColors}
         />
 
@@ -160,11 +163,9 @@ const BrandPage = () => {
           customLogo={brandData.customLogo}
         />
 
-        {/* Product Highlights Section */}
-        <ProductHighlightsSection
-          products={brandProducts}
-          title="Our Fashion Collection"
-          subtitle="Discover our handcrafted traditional smocks and contemporary African fashion pieces"
+        {/* AfriSmocks Product Showcase */}
+        <AfriSmocksProductShowcase
+          products={products}
           brandColors={brandData.brandColors}
         />
 
@@ -204,21 +205,20 @@ const BrandPage = () => {
           title="Experience AfriSmocks Quality"
           description="Ready to celebrate Ghanaian culture through authentic fashion?"
           primaryButton={{
-            text: "Shop All Products",
+            text: "Shop All Collections",
             to: "/products"
           }}
           secondaryButton={{
             text: "Get in Touch",
             to: "/contact"
           }}
-          background="gradient"
-          customBackground={`linear-gradient(135deg, ${brandData.brandColors.primary}, ${brandData.brandColors.secondary})`}
+          background="primary"
         />
       </div>
     );
   }
 
-  // OgriBusiness - Agricultural products and farming
+  // OgriBusiness - Agricultural products and farm produce
   if (brandSlug === 'ogribusiness') {
     return (
       <div className="min-h-screen bg-white">
@@ -233,17 +233,14 @@ const BrandPage = () => {
           customLogo={brandData.customLogo}
         />
 
-        {/* Product Highlights Section */}
-        <ProductHighlightsSection
-          products={brandProducts}
-          title="Our Agricultural Products"
-          subtitle="Discover our premium farm produce and quality agricultural products"
+        {/* OgriBusiness Product Showcase */}
+        <OgriBusinessProductShowcase
+          products={products}
           brandColors={brandData.brandColors}
         />
 
         {/* Quality Section */}
         <OgriBusinessQualitySection
-          featuredProduct={brandData.featuredProduct}
           brandColors={brandData.brandColors}
         />
 
@@ -252,54 +249,26 @@ const BrandPage = () => {
           brandColors={brandData.brandColors}
         />
 
-        {/* Ingredient Purity Section - Adapted for Agriculture */}
-        <IngredientPuritySection
-          title="Agricultural Excellence"
-          features={[
-            {
-              title: 'Sustainable Farming',
-              description: 'Environmentally conscious farming practices'
-            },
-            {
-              title: 'Quality Standards',
-              description: 'Export-ready products meeting international standards'
-            },
-            {
-              title: 'Local Farmers',
-              description: 'Supporting Northern Ghana farming communities'
-            }
-          ]}
-          brandColors={brandData.brandColors}
-        />
-
         {/* Final CTA Section */}
         <CTASection
           title="Experience OgriBusiness Quality"
           description="Ready to source premium agricultural products from Northern Ghana?"
           primaryButton={{
-            text: "Shop All Products",
+            text: "View All Products",
             to: "/products"
           }}
           secondaryButton={{
             text: "Get in Touch",
             to: "/contact"
           }}
-          background="gradient"
-          customBackground={`linear-gradient(135deg, ${brandData.brandColors.primary}, ${brandData.brandColors.secondary})`}
+          background="primary"
         />
       </div>
     );
   }
 
-  // For any other brands, use the legacy design
-  return (
-    <LegacyBrandPage
-      brand={brand}
-      brandInfo={brandInfo}
-      brandProducts={brandProducts}
-      brandSlug={brandSlug}
-    />
-  );
+  // Fallback for unknown brands
+  return <LegacyBrandPage brand={brand} />;
 };
 
 export default BrandPage;

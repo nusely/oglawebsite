@@ -132,7 +132,9 @@ export const mockData = {
       description: '100% pure, unrefined shea butter sourced from Lawra, Northern Ghana.',
       shortDescription: 'Natural moisturizer for all skin types',
       images: [
-        '/images/brands/laveeda_cat/BlackSoap_Gel.webp'
+        '/images/brands/laveeda_cat/BlackSoap_Gel.webp',
+        '/images/brands/laveeda_cat/25Kg_unrefined_shea.webp',
+        '/images/brands/laveeda_cat/la_veeda_250ml_shea.webp'
       ],
       specifications: {
         weight: '500g',
@@ -158,7 +160,36 @@ export const mockData = {
         }
       ],
       isFeatured: true,
-      sortOrder: 1
+      sortOrder: 1,
+      reviews: [
+        {
+          id: 1,
+          rating: 5,
+          title: 'Excellent Quality',
+          comment: 'This shea butter is absolutely amazing! My skin feels so soft and moisturized. Will definitely order again.',
+          name: 'Sarah M.',
+          date: '2024-01-15T10:30:00Z',
+          helpful: 12
+        },
+        {
+          id: 2,
+          rating: 4,
+          title: 'Great Product',
+          comment: 'Very good quality shea butter. Natural and effective for dry skin. Highly recommend!',
+          name: 'John D.',
+          date: '2024-01-10T14:20:00Z',
+          helpful: 8
+        },
+        {
+          id: 3,
+          rating: 5,
+          title: 'Perfect for My Skin',
+          comment: 'I have sensitive skin and this shea butter works perfectly. No irritation and great moisturizing effect.',
+          name: 'Ama K.',
+          date: '2024-01-05T09:15:00Z',
+          helpful: 15
+        }
+      ]
     },
     {
       _id: '4',
@@ -169,7 +200,9 @@ export const mockData = {
       description: 'Premium 250ml unrefined shea butter in convenient packaging for daily use.',
       shortDescription: 'Natural moisturizer for all skin types',
       images: [
-        '/images/brands/laveeda_cat/la_veeda_250ml_shea.webp'
+        '/images/brands/laveeda_cat/la_veeda_250ml_shea.webp',
+        '/images/brands/laveeda_cat/BlackSoap_Gel.webp',
+        '/images/brands/laveeda_cat/25Kg_unrefined_shea.webp'
       ],
       specifications: {
         weight: '250ml',
@@ -195,7 +228,27 @@ export const mockData = {
         }
       ],
       isFeatured: true,
-      sortOrder: 2
+      sortOrder: 2,
+      reviews: [
+        {
+          id: 4,
+          rating: 5,
+          title: 'Convenient Size',
+          comment: 'Perfect size for daily use. The pump makes it easy to apply and the quality is excellent.',
+          name: 'Kwame A.',
+          date: '2024-01-12T11:45:00Z',
+          helpful: 6
+        },
+        {
+          id: 5,
+          rating: 4,
+          title: 'Good Value',
+          comment: 'Great product at a reasonable price. The 250ml size is perfect for my needs.',
+          name: 'Efua B.',
+          date: '2024-01-08T16:30:00Z',
+          helpful: 4
+        }
+      ]
     },
     {
       _id: '2',
@@ -206,7 +259,9 @@ export const mockData = {
       description: 'Authentic Ghanaian men\'s smock made from handwoven cotton.',
       shortDescription: 'Authentic Ghanaian men\'s smock',
       images: [
-        '/images/brands/afrismock_cat/Kente_afrismock.webp'
+        '/images/brands/afrismock_cat/Kente_afrismock.webp',
+        '/images/brands/afrismocks/Image_testimonial3.webp',
+        '/images/brands/afrismocks/Image_testimonial4.webp'
       ],
       specifications: {
         material: 'Handwoven Cotton',
@@ -234,7 +289,27 @@ export const mockData = {
         }
       ],
       isFeatured: true,
-      sortOrder: 1
+      sortOrder: 1,
+      reviews: [
+        {
+          id: 6,
+          rating: 5,
+          title: 'Beautiful Traditional Wear',
+          comment: 'This smock is beautifully crafted and fits perfectly. The quality of the handwoven cotton is exceptional.',
+          name: 'Kofi M.',
+          date: '2024-01-14T13:20:00Z',
+          helpful: 18
+        },
+        {
+          id: 7,
+          rating: 4,
+          title: 'Authentic Design',
+          comment: 'Very authentic traditional design. Great for cultural events and ceremonies.',
+          name: 'Yaw S.',
+          date: '2024-01-09T10:15:00Z',
+          helpful: 11
+        }
+      ]
     },
     {
       _id: '3',
@@ -245,7 +320,9 @@ export const mockData = {
       description: 'High-quality white beans sourced from Northern Ghana.',
       shortDescription: 'Premium white beans from Northern Ghana',
       images: [
-        '/images/brands/ogribusiness_cat/5kg_Ogri_Beans.webp'
+        '/images/brands/ogribusiness_cat/5kg_Ogri_Beans.webp',
+        '/images/brands/ogribusiness/Image_testimonial1.webp',
+        '/images/brands/ogribusiness/Image_testimonial2.webp'
       ],
       specifications: {
         weight: '50kg',
@@ -271,7 +348,27 @@ export const mockData = {
         }
       ],
       isFeatured: true,
-      sortOrder: 1
+      sortOrder: 1,
+      reviews: [
+        {
+          id: 8,
+          rating: 5,
+          title: 'Excellent Quality Beans',
+          comment: 'These beans are of the highest quality. Clean, well-sorted, and perfect for our restaurant.',
+          name: 'Restaurant Owner',
+          date: '2024-01-13T15:45:00Z',
+          helpful: 22
+        },
+        {
+          id: 9,
+          rating: 4,
+          title: 'Great for Bulk Orders',
+          comment: 'Perfect for our bulk orders. The quality is consistent and delivery was on time.',
+          name: 'Market Vendor',
+          date: '2024-01-07T12:30:00Z',
+          helpful: 9
+        }
+      ]
     }
   ]
 };

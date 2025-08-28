@@ -9,16 +9,19 @@ export { default as UltimateCollectionSection } from './brand/UltimateCollection
 export { default as BrandStorySection } from './brand/BrandStorySection';
 export { default as IngredientPuritySection } from './brand/IngredientPuritySection';
 export { default as ProductGridSection } from './brand/ProductGridSection';
+export { default as LaVeedaProductShowcase } from './brand/LaVeedaProductShowcase';
 
 // Brand sections - AfriSmocks
 export { default as AfriSmocksHeroSection } from './brand/AfriSmocksHeroSection';
 export { default as AfriSmocksCollectionSection } from './brand/AfriSmocksCollectionSection';
 export { default as AfriSmocksCraftsmanshipSection } from './brand/AfriSmocksCraftsmanshipSection';
+export { default as AfriSmocksProductShowcase } from './brand/AfriSmocksProductShowcase';
 
 // Brand sections - OgriBusiness
 export { default as OgriBusinessHeroSection } from './brand/OgriBusinessHeroSection';
 export { default as OgriBusinessQualitySection } from './brand/OgriBusinessQualitySection';
 export { default as OgriBusinessFarmingSection } from './brand/OgriBusinessFarmingSection';
+export { default as OgriBusinessProductShowcase } from './brand/OgriBusinessProductShowcase';
 
 // Legacy sections
 export { default as LegacyBrandPage } from './brand/LegacyBrandPage';
