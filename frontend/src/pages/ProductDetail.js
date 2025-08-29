@@ -7,25 +7,33 @@ import Loading from '../components/Loading';
 import ProductImageGallery from '../components/ProductImageGallery';
 import ProductReviews from '../components/ProductReviews';
 import RelatedProducts from '../components/RelatedProducts';
+import { ProductCardSkeleton } from '../components/LoadingSkeleton';
 
 const ProductDetail = () => {
-  const { productSlug } = useParams();
-  const { getProductBySlug, getBrandBySlug, products } = useProducts();
+  const { slug } = useParams();
+  const { getProductBySlug, getBrandBySlug, products, brands } = useProducts();
   const { addToRequest, isInRequest } = useRequestBasket();
   const [activeTab, setActiveTab] = useState('description');
   
-  const product = getProductBySlug(productSlug);
-  const brand = product ? getBrandBySlug(product.brandId) : null;
+  const product = getProductBySlug(slug);
+  const brand = product ? brands.find(b => b._id === product.brandId) : null;
 
   if (!product) {
     return <Loading message="Product not found" />;
   }
 
   const formatPrice = (price) => {
+    if (!price || isNaN(price)) return 'GH₵0.00';
     return new Intl.NumberFormat('en-GH', {
       style: 'currency',
-      currency: product.pricing.currency || 'GHS'
+      currency: 'GHS'
     }).format(price);
+  };
+
+  const getProductPrice = (product) => {
+    if (product.pricing?.unitPrice) return product.pricing.unitPrice;
+    if (product.price) return product.price;
+    return 0;
   };
 
   const handleAddReview = (review) => {
@@ -58,7 +66,7 @@ const ProductDetail = () => {
               {brand && (
                 <div 
                   className="inline-block px-3 py-1 rounded-full text-sm font-medium text-white mb-4"
-                  style={{ backgroundColor: brand.brandColors.primary }}
+                  style={{ backgroundColor: brand.brandColors?.primary || '#b5a033' }}
                 >
                   {brand.name}
                 </div>
@@ -68,7 +76,7 @@ const ProductDetail = () => {
               <p className="text-lg text-gray-600 mb-6">{product.shortDescription}</p>
               
               <div className="text-3xl font-bold text-gray-900 mb-6">
-                {formatPrice(product.pricing.unitPrice)}
+                {formatPrice(getProductPrice(product))}
               </div>
               
               {/* Quick Rating Display */}
@@ -97,17 +105,18 @@ const ProductDetail = () => {
                 </div>
               )}
               
-              {/* Add to Request Button */}
-              <button 
-                className={`w-full text-lg py-3 font-semibold rounded-lg transition-all duration-300 mb-6 ${
-                  isInRequest(product._id)
-                    ? 'bg-green-500 text-white hover:bg-green-600'
-                    : 'btn btn-primary'
-                }`}
-                onClick={() => addToRequest(product)}
-              >
-                {isInRequest(product._id) ? '✓ Added to Request' : 'Add to Request'}
-              </button>
+                             {/* Add to Request Button */}
+               <button 
+                 className={`w-full text-lg py-3 font-semibold rounded-lg transition-all duration-300 mb-6 ${
+                   isInRequest(product._id)
+                     ? 'text-white hover:bg-golden-700'
+                     : 'btn btn-primary'
+                 }`}
+                 style={isInRequest(product._id) ? { backgroundColor: '#8B6914' } : {}}
+                 onClick={() => addToRequest(product)}
+               >
+                 {isInRequest(product._id) ? '✓ Added to Request' : 'Add to Request'}
+               </button>
 
               {/* Bulk Pricing Info */}
               {product.pricing.bulkPricing && product.pricing.bulkPricing.length > 0 && (
@@ -195,7 +204,7 @@ const ProductDetail = () => {
                 transition={{ duration: 0.3 }}
               >
                 {product.specifications && Object.keys(product.specifications).length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
                     {Object.entries(product.specifications).map(([key, value]) => (
                       <div key={key} className="flex justify-between py-2 border-b border-gray-100">
                         <span className="text-gray-600 capitalize font-medium">{key}:</span>

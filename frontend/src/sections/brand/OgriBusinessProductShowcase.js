@@ -37,7 +37,7 @@ const OgriBusinessProductShowcase = ({ products, brandColors }) => {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-12">
           {ogriBusinessProducts.map((product, index) => (
             <motion.div
               key={product._id}
@@ -73,7 +73,7 @@ const OgriBusinessProductShowcase = ({ products, brandColors }) => {
 
         {/* Agricultural Features */}
         <motion.div 
-          className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8"
+                      className="mt-16 grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
@@ -122,7 +122,7 @@ const OgriBusinessProductShowcase = ({ products, brandColors }) => {
           <h3 className="text-2xl font-bold text-center mb-8" style={{ color: brandColors?.primary }}>
             Our Product Categories
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div className="text-center p-4 rounded-lg hover:bg-gray-50 transition-colors">
               <div className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ backgroundColor: `${brandColors?.primary}20` }}>
                 <span className="text-lg font-bold" style={{ color: brandColors?.primary }}>B</span>
@@ -169,7 +169,7 @@ const OgriBusinessProductShowcase = ({ products, brandColors }) => {
             <p className="text-lg opacity-90 mb-6">
               All our agricultural products undergo rigorous quality control processes to ensure they meet international standards.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               <div className="text-center">
                 <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
                   <span className="text-xl font-bold">✓</span>

@@ -68,7 +68,7 @@ const Header = () => {
                   {brands.map((brand) => (
                     <Link
                       key={brand._id}
-                      to={`/brands/${brand.slug}`}
+                      to={`/brand/${brand.slug}`}
                       className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 transition-colors"
                     >
                       <div 
@@ -270,7 +270,7 @@ const Header = () => {
                 {brands.map((brand) => (
                   <Link
                     key={brand._id}
-                    to={`/brands/${brand.slug}`}
+                    to={`/brand/${brand.slug}`}
                     className="block pl-4 text-sm text-gray-600 hover:text-golden-600 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >

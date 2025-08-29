@@ -2,22 +2,127 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Ogla Shea Butter & General Trading - Premium cosmetics, traditional Ghanaian clothing, and agricultural products from Northern Ghana."
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <meta name="theme-color" content="#b5a033" />
     
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Primary Meta Tags -->
+    <title>Ogla Shea Butter & General Trading - Premium African Products</title>
+    <meta name="title" content="Ogla Shea Butter & General Trading - Premium African Products" />
+    <meta name="description" content="Premium shea butter products, authentic African textiles, and innovative business solutions. La Veeda, AfriSmocks, and OgriBusiness - your trusted B2B partner for quality African products." />
+    <meta name="keywords" content="shea butter, African textiles, B2B trading, La Veeda, AfriSmocks, OgriBusiness, Ghana, African products, wholesale, business solutions" />
+    <meta name="author" content="Ogla Shea Butter & General Trading" />
+    <meta name="robots" content="index, follow" />
     
-    <title>Ogla Shea Butter & General Trading</title>
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://oglasheabutter.com/" />
+    <meta property="og:title" content="Ogla Shea Butter & General Trading - Premium African Products" />
+    <meta property="og:description" content="Premium shea butter products, authentic African textiles, and innovative business solutions. La Veeda, AfriSmocks, and OgriBusiness - your trusted B2B partner for quality African products." />
+    <meta property="og:image" content="%PUBLIC_URL%/images/ogla-logo.png" />
+    <meta property="og:site_name" content="Ogla Shea Butter & General Trading" />
+    <meta property="og:locale" content="en_US" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://oglasheabutter.com/" />
+    <meta property="twitter:title" content="Ogla Shea Butter & General Trading - Premium African Products" />
+    <meta property="twitter:description" content="Premium shea butter products, authentic African textiles, and innovative business solutions. La Veeda, AfriSmocks, and OgriBusiness - your trusted B2B partner for quality African products." />
+    <meta property="twitter:image" content="%PUBLIC_URL%/images/ogla-logo.png" />
+    <meta name="twitter:site" content="@oglasheabutter" />
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="googlebot" content="index, follow" />
+    <meta name="google" content="notranslate" />
+    <link rel="canonical" href="https://oglasheabutter.com/" />
+    
+    <!-- Mobile Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Ogla Shea Butter" />
+    <meta name="msapplication-TileColor" content="#b5a033" />
+    <meta name="msapplication-config" content="%PUBLIC_URL%/browserconfig.xml" />
+    
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon-16x16.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/site.webmanifest" />
+    <link rel="mask-icon" href="%PUBLIC_URL%/safari-pinned-tab.svg" color="#b5a033" />
+    
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- DNS Prefetch for performance -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="//fonts.gstatic.com" />
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="%PUBLIC_URL%/images/ogla-logo.png" as="image" />
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Ogla Shea Butter & General Trading",
+      "url": "https://oglasheabutter.com",
+      "logo": "https://oglasheabutter.com/images/ogla-logo.png",
+      "description": "Premium shea butter products, authentic African textiles, and innovative business solutions.",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "Ghana"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+233-54-152-8841",
+        "contactType": "customer service",
+        "email": "oglatrade@gmail.com"
+      },
+      "sameAs": [
+        "https://facebook.com/oglasheabutter",
+        "https://twitter.com/oglasheabutter",
+        "https://instagram.com/oglasheabutter"
+      ]
+    }
+    </script>
+    
+    <!-- Performance monitoring -->
+    <script>
+      // Web Vitals monitoring
+      if ('PerformanceObserver' in window) {
+        // Largest Contentful Paint
+        const lcpObserver = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          const lastEntry = entries[entries.length - 1];
+          console.log('LCP:', lastEntry.startTime);
+        });
+        lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
+        
+        // First Input Delay
+        const fidObserver = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          entries.forEach((entry) => {
+            console.log('FID:', entry.processingStart - entry.startTime);
+          });
+        });
+        fidObserver.observe({ entryTypes: ['first-input'] });
+        
+        // Cumulative Layout Shift
+        const clsObserver = new PerformanceObserver((list) => {
+          let clsValue = 0;
+          const entries = list.getEntries();
+          entries.forEach((entry) => {
+            if (!entry.hadRecentInput) {
+              clsValue += entry.value;
+            }
+          });
+          console.log('CLS:', clsValue);
+        });
+        clsObserver.observe({ entryTypes: ['layout-shift'] });
+      }
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

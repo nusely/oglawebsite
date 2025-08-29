@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiUser, FiPhone, FiMail, FiMapPin, FiFileText, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import { FiUser, FiMail, FiMapPin, FiFileText, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import { useRequestBasket } from '../contexts/RequestBasketContext';
 import { useAuth } from '../contexts/AuthContext';
 import { generateInvoiceNumber, generateProformaInvoice } from '../utils/invoiceGenerator';
@@ -31,7 +31,6 @@ const RequestForm = () => {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState(null);
 
@@ -150,10 +149,17 @@ const RequestForm = () => {
 
       console.log('Request stored in localStorage');
 
-      // Generate and download PDF
-      console.log('Starting PDF generation...');
-      await generateProformaInvoice(invoiceData);
-      console.log('PDF generation completed');
+      // Store full invoice data for download
+      localStorage.setItem(`invoice_${invoiceData.invoiceNumber}`, JSON.stringify(invoiceData));
+
+      // Only generate and send email for authenticated users
+      if (user) { // Assuming user is available from useAuth
+        console.log('Starting PDF generation...');
+        await generateProformaInvoice(invoiceData);
+        console.log('PDF generation completed');
+      } else {
+        console.log('Guest user - invoice will be generated after sign in');
+      }
 
       // Clear request basket
       clearRequest();
@@ -222,8 +228,6 @@ const RequestForm = () => {
     });
   };
 
-
-
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-GH', {
       style: 'currency',
@@ -264,11 +268,9 @@ const RequestForm = () => {
                 </p>
                 <ul className="text-blue-700 space-y-1">
                   <li>• Your complete request details and pricing</li>
-                 
                   <li>• Email delivery to your registered address</li>
                   <li>• Ogla rep will get back to you shortly afterwards</li>
                   <li>• You can also download the proforma invoice and print it out</li>
-                  
                 </ul>
               </div>
             </div>
@@ -533,8 +535,6 @@ const RequestForm = () => {
                       </div>
                     </div>
                   </div>
-
-
 
                   {/* Notes */}
                   <div>

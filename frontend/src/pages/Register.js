@@ -396,7 +396,7 @@ const Register = () => {
                   className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
                     errors.phone ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="+233 XX XXX XXXX"
+                                      placeholder="+233 54 152 8841"
                 />
               </div>
               {errors.phone && (

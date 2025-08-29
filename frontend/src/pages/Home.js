@@ -5,9 +5,11 @@ import { FiArrowRight, FiStar, FiChevronLeft, FiChevronRight } from 'react-icons
 import { useProducts } from '../hooks/useProducts';
 import BrandCard from '../components/BrandCard';
 import ProductCard from '../components/ProductCard';
+import { ProductCardSkeleton, BrandCardSkeleton } from '../components/LoadingSkeleton';
+import SEOHead from '../components/SEOHead';
 
 const Home = () => {
-  const { brands, getFeaturedProducts } = useProducts();
+  const { brands, getFeaturedProducts, loading } = useProducts();
   const featuredProducts = getFeaturedProducts();
   
   // Hero images array
@@ -68,6 +70,13 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
+      <SEOHead 
+        title="Premium African Products - Shea Butter, Textiles & Business Solutions"
+        description="Discover premium shea butter products, authentic African textiles, and innovative business solutions from Ghana"
+        keywords="shea butter, African textiles, B2B trading, La Veeda, AfriSmocks, OgriBusiness, Ghana, African products, wholesale, business solutions, premium quality"
+        image="/images/ogla-hero.jpg"
+        type="website"
+      />
       {/* Hero Section */}
       <section className="relative h-screen overflow-hidden">
         {/* Background Image Carousel */}
@@ -241,18 +250,32 @@ const Home = () => {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {brands?.map((brand, index) => (
-              <motion.div
-                key={brand._id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: index * 0.2 }}
-              >
-                <BrandCard brand={brand} />
-              </motion.div>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: index * 0.2 }}
+                >
+                  <BrandCardSkeleton />
+                </motion.div>
+              ))
+            ) : (
+              brands?.map((brand, index) => (
+                <motion.div
+                  key={brand._id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: index * 0.2 }}
+                >
+                  <BrandCard brand={brand} />
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -276,18 +299,32 @@ const Home = () => {
           </motion.div>
 
           {/* Products Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {featuredProducts?.map((product, index) => (
-              <motion.div
-                key={product._id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: index * 0.1 }}
-              >
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {loading ? (
+              Array.from({ length: 6 }).map((_, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: index * 0.1 }}
+                >
+                  <ProductCardSkeleton />
+                </motion.div>
+              ))
+            ) : (
+              featuredProducts?.map((product, index) => (
+                <motion.div
+                  key={product._id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: index * 0.1 }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))
+            )}
           </div>
 
           {/* View All Products Button */}

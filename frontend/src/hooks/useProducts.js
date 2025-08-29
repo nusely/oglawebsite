@@ -95,6 +95,28 @@ export const ProductProvider = ({ children }) => {
       );
     }
 
+    // Apply category filter
+    if (filters.category) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.category === filters.category
+      );
+    }
+
+    // Apply price range filter
+    if (filters.priceRange) {
+      filteredProducts = filteredProducts.filter(product => {
+        const price = product.price || 0;
+        return price >= filters.priceRange.min && price <= filters.priceRange.max;
+      });
+    }
+
+    // Apply in stock filter
+    if (filters.inStock) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.inStock !== false
+      );
+    }
+
     // Apply featured filter
     if (filters.featured) {
       filteredProducts = filteredProducts.filter(product => 

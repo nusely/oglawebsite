@@ -86,9 +86,10 @@ const BrandProductCard = ({ product, brandColors }) => {
               disabled={isAddingToRequest}
               className={`p-2 rounded-full shadow-lg transition-colors ${
                 isProductInRequest 
-                  ? 'bg-green-500 text-white' 
+                  ? 'text-white' 
                   : 'bg-white hover:bg-gray-50 text-gray-600'
               }`}
+              style={isProductInRequest ? { backgroundColor: brandColors?.primary || brand?.brandColors?.primary || '#b5a033' } : {}}
             >
               {isAddingToRequest ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
@@ -114,8 +115,8 @@ const BrandProductCard = ({ product, brandColors }) => {
           </p>
         )}
         
-        {/* Product Name - Hover uses brand color */}
-        <Link to={`/products/${product.slug}`}>
+                 {/* Product Name - Hover uses brand color */}
+         <Link to={`/product/${product.slug}`}>
           <h3 
             className="text-sm sm:text-base font-semibold text-gray-900 mb-2 transition-colors line-clamp-2"
             onMouseEnter={(e) => {
@@ -172,9 +173,9 @@ const BrandProductCard = ({ product, brandColors }) => {
         
         {/* Action Buttons - Use Brand Colors */}
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-auto">
-          <Link 
-            to={`/products/${product.slug}`}
-            className="flex-1 btn text-center text-xs sm:text-sm py-1.5 sm:py-2 bg-transparent border-2 hover:text-white transition-all duration-200"
+                     <Link 
+             to={`/product/${product.slug}`}
+             className="flex-1 btn text-center text-xs sm:text-sm py-1.5 sm:py-2 bg-transparent border-2 hover:text-white transition-all duration-200"
             style={{ 
               color: brandColors?.primary || brand?.brandColors?.primary || '#b5a033',
               borderColor: brandColors?.primary || brand?.brandColors?.primary || '#b5a033'
@@ -193,9 +194,7 @@ const BrandProductCard = ({ product, brandColors }) => {
             disabled={isAddingToRequest}
             className="flex-1 btn text-center text-xs sm:text-sm py-1.5 sm:py-2 text-white transition-all duration-200"
             style={{ 
-              backgroundColor: isProductInRequest 
-                ? '#10B981' // Green for success
-                : brandColors?.primary || brand?.brandColors?.primary || '#b5a033'
+              backgroundColor: brandColors?.primary || brand?.brandColors?.primary || '#b5a033'
             }}
           >
             {isAddingToRequest ? (

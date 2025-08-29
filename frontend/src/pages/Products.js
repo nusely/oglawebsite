@@ -1,154 +1,161 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useProducts } from '../hooks/useProducts';
-import { useRequestBasket } from '../contexts/RequestBasketContext';
-import ProductHeroSlider from '../components/ProductHeroSlider';
+import { FiFilter } from 'react-icons/fi';
+import SEOHead from '../components/SEOHead';
 import SearchBar from '../components/SearchBar';
 import FilterTags from '../components/FilterTags';
 import SearchResults from '../components/SearchResults';
+import ProductSidebar from '../components/ProductSidebar';
+import { useProducts } from '../hooks/useProducts';
+import { useRequestBasket } from '../contexts/RequestBasketContext';
+import { SearchResultsSkeleton } from '../components/LoadingSkeleton';
 
 const Products = () => {
-  const { products } = useProducts();
+  const { products, loading, searchProducts } = useProducts();
   const { addToRequest } = useRequestBasket();
-  
-  const [filteredProducts, setFilteredProducts] = useState(products);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    brand: '',
+    category: '',
+    priceRange: { min: 0, max: 10000 },
+    inStock: false,
+    featured: false
+  });
   const [viewMode, setViewMode] = useState('grid');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Extract unique brands and categories from products
-  const brands = [...new Set(products.map(product => product.brandId))].sort();
-  const categories = [...new Set(products.map(product => product.category))].sort();
-
-  // Update filtered products when products change
+  // Reset pagination when search or filters change
   useEffect(() => {
-    setFilteredProducts(products);
-  }, [products]);
+    // This will trigger the SearchResults component to reset to page 1
+  }, [searchQuery, filters]);
 
-  // Handle search
-  const handleSearch = (searchResults) => {
-    setFilteredProducts(searchResults);
+  const handleSearch = (query) => {
+    setSearchQuery(query);
   };
 
-  // Handle filter changes
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
-    
-    // Apply filters to products
-    let filtered = products;
-    
-         if (newFilters.searchTerm) {
-       const searchLower = newFilters.searchTerm.toLowerCase();
-       filtered = filtered.filter(product => 
-         product.name.toLowerCase().includes(searchLower) ||
-         product.shortDescription?.toLowerCase().includes(searchLower) ||
-         product.brandId?.toLowerCase().includes(searchLower) ||
-         product.category.toLowerCase().includes(searchLower)
-       );
-     }
-     
-     if (newFilters.brand) {
-       filtered = filtered.filter(product => product.brandId === newFilters.brand);
-     }
-    
-    if (newFilters.category) {
-      filtered = filtered.filter(product => product.category === newFilters.category);
-    }
-    
-         if (newFilters.priceRange?.min || newFilters.priceRange?.max) {
-       filtered = filtered.filter(product => {
-         const price = product.pricing?.unitPrice || product.price;
-         const min = newFilters.priceRange.min ? parseFloat(newFilters.priceRange.min) : 0;
-         const max = newFilters.priceRange.max ? parseFloat(newFilters.priceRange.max) : Infinity;
-         return price >= min && price <= max;
-       });
-     }
-    
-    setFilteredProducts(filtered);
   };
 
-  // Handle removing individual filters
-  const handleRemoveFilter = (filterType, filterValue) => {
-    const newFilters = { ...filters };
-    
-    switch (filterType) {
-      case 'brand':
-        delete newFilters.brand;
-        break;
-      case 'category':
-        delete newFilters.category;
-        break;
-      case 'price':
-        delete newFilters.priceRange;
-        break;
-      case 'search':
-        delete newFilters.searchTerm;
-        break;
-    }
-    
-    setFilters(newFilters);
-    handleFilterChange(newFilters);
+  const handleClearFilters = () => {
+    setFilters({
+      brand: '',
+      category: '',
+      priceRange: { min: 0, max: 10000 },
+      inStock: false,
+      featured: false
+    });
   };
 
-  // Handle clearing all filters
-  const handleClearAllFilters = () => {
-    setFilters({});
-    setFilteredProducts(products);
-  };
+  // Filter products based on search and filters
+  const filteredProducts = searchProducts(searchQuery, {
+    brandId: filters.brand,
+    category: filters.category,
+    featured: filters.featured
+  });
 
-  // Handle adding product to request basket
-  const handleAddToRequest = (product) => {
-    addToRequest(product);
-  };
+  if (loading) {
+    return (
+      <>
+        <SEOHead 
+          title="All Products - Shea Butter, Textiles & Business Solutions"
+          description="Browse our complete collection of premium shea butter products, authentic African textiles, and innovative business solutions. Find the perfect products for your business needs."
+          keywords="shea butter products, African textiles, business solutions, wholesale products, La Veeda, AfriSmocks, OgriBusiness, Ghana products, B2B trading"
+          image="/images/products-hero.jpg"
+          type="website"
+        />
+        
+        <div className="min-h-screen bg-gray-50 py-12">
+          <div className="container">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">Our Products</h1>
+              <p className="text-xl text-gray-600">
+                Discover our complete collection of premium African products
+              </p>
+            </div>
+            <SearchResultsSkeleton count={12} />
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Slider */}
-      <ProductHeroSlider />
+    <>
+      <SEOHead 
+        title="All Products - Shea Butter, Textiles & Business Solutions"
+        description="Browse our complete collection of premium shea butter products, authentic African textiles, and innovative business solutions. Find the perfect products for your business needs."
+        keywords="shea butter products, African textiles, business solutions, wholesale products, La Veeda, AfriSmocks, OgriBusiness, Ghana products, B2B trading"
+        image="/images/products-hero.jpg"
+        type="website"
+      />
       
-      {/* Search and Filter Section */}
-      <div className="py-12 bg-white border-b border-gray-200">
+      <div className="min-h-screen bg-gray-50 py-12">
         <div className="container">
+          {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">Our Products</h1>
             <p className="text-xl text-gray-600">
-              Discover our complete collection of premium products
+              Discover our complete collection of premium African products
             </p>
           </div>
-          
-          {/* Search Bar */}
-          <SearchBar
-            onSearch={handleSearch}
-            onFilterChange={handleFilterChange}
-            products={products}
-            brands={brands}
-            categories={categories}
-          />
+
+          {/* Mobile Filter Toggle */}
+          <div className="lg:hidden mb-6">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-white border border-gray-300 rounded-lg hover:border-golden-500 transition-colors"
+            >
+              <FiFilter className="h-5 w-5 text-gray-600" />
+              <span className="text-gray-700 font-medium">Show Filters</span>
+            </button>
+          </div>
+
+          {/* Main Content with Sidebar */}
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Sidebar */}
+            <ProductSidebar
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onClearFilters={handleClearFilters}
+              isOpen={sidebarOpen}
+              onToggle={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:w-80 flex-shrink-0"
+            />
+
+            {/* Main Content */}
+            <div className="flex-1">
+              {/* Search Bar */}
+              <div className="mb-6">
+                <SearchBar 
+                  onSearch={handleSearch}
+                />
+              </div>
+
+              {/* Active Filters */}
+              {(filters.brand || filters.category || filters.priceRange.min > 0 || filters.priceRange.max < 10000 || filters.inStock || filters.featured) && (
+                <div className="mb-6">
+                  <FilterTags 
+                    filters={filters}
+                    onClearFilter={handleFilterChange}
+                    onClearAll={handleClearFilters}
+                  />
+                </div>
+              )}
+
+              {/* Search Results with Enhanced Pagination */}
+              <SearchResults 
+                products={filteredProducts}
+                searchTerm={searchQuery}
+                filters={filters}
+                onAddToRequest={addToRequest}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Products Section */}
-      <div className="py-12">
-        <div className="container">
-          {/* Filter Tags */}
-          <FilterTags
-            filters={filters}
-            onRemoveFilter={handleRemoveFilter}
-            onClearAll={handleClearAllFilters}
-          />
-
-          {/* Search Results */}
-          <SearchResults
-            products={filteredProducts}
-            searchTerm={filters.searchTerm || ''}
-            filters={filters}
-            onAddToRequest={handleAddToRequest}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
-        </div>
-      </div>
-    </div>
+    </>
   );
 };
 

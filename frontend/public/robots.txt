@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://oglasheabutter.com/sitemap.xml
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /private/
+Disallow: /api/
+
+# Allow important pages
+Allow: /products
+Allow: /brands/
+Allow: /about
+Allow: /contact
+
+# Crawl delay (optional)
+Crawl-delay: 1

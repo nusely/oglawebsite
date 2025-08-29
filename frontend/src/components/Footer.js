@@ -33,11 +33,11 @@ const Footer = () => {
               </div>
               <div className="flex items-center text-gray-300">
                 <FiPhone className="mr-2" />
-                <span>+233 XX XXX XXXX</span>
+                <span>+233 54 152 8841</span>
               </div>
               <div className="flex items-center text-gray-300">
                 <FiMail className="mr-2" />
-                <span>info@oglatrading.com</span>
+                <span>oglatrade@gmail.com</span>
               </div>
             </div>
           </div>
@@ -74,17 +74,17 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4">Our Brands</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/brands/la-veeda" className="text-gray-300 hover:text-white transition-colors">
+                <Link to="/brand/la-veeda" className="text-gray-300 hover:text-white transition-colors">
                   La Veeda
                 </Link>
               </li>
               <li>
-                <Link to="/brands/afrismocks" className="text-gray-300 hover:text-white transition-colors">
+                <Link to="/brand/afrismocks" className="text-gray-300 hover:text-white transition-colors">
                   AfriSmocks
                 </Link>
               </li>
               <li>
-                <Link to="/brands/ogribusiness" className="text-gray-300 hover:text-white transition-colors">
+                <Link to="/brand/ogribusiness" className="text-gray-300 hover:text-white transition-colors">
                   OgriBusiness
                 </Link>
               </li>

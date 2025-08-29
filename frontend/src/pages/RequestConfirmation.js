@@ -24,10 +24,28 @@ const RequestConfirmation = () => {
   };
 
   const handleDownloadInvoice = () => {
-    // In a real implementation, this would download the generated PDF
-    console.log('Downloading invoice:', invoiceNumber);
-    // For demo purposes, we'll just show an alert
-    alert(`Downloading Proforma Invoice ${invoiceNumber}`);
+    if (isAuthenticated) {
+      // In a real implementation, this would download the generated PDF
+      console.log('Downloading invoice:', invoiceNumber);
+      // For demo purposes, we'll just show an alert
+      alert(`Downloading Proforma Invoice ${invoiceNumber}`);
+    } else {
+      // Show popup for non-authenticated users
+      const shouldSignIn = window.confirm(
+        'To download your invoice instantly, please sign in to your account.\n\n' +
+        'Alternatively, check your email for the Proforma Invoice PDF.\n\n' +
+        'Would you like to sign in now?'
+      );
+      
+      if (shouldSignIn) {
+        navigate('/login', { 
+          state: { 
+            returnTo: '/request-confirmation',
+            message: 'Please sign in to download your invoice'
+          } 
+        });
+      }
+    }
   };
 
   const handleViewRequests = () => {
@@ -130,13 +148,24 @@ const RequestConfirmation = () => {
             transition={{ delay: 0.4 }}
             className="grid grid-cols-1 md:grid-cols-3 gap-4"
           >
-            <button
-              onClick={handleDownloadInvoice}
-              className="flex items-center justify-center space-x-2 px-6 py-3 bg-golden-600 text-white rounded-lg hover:bg-golden-700 transition-colors"
-            >
-              <FiDownload className="h-5 w-5" />
-              <span>Download Invoice</span>
-            </button>
+            <div className="flex flex-col">
+              <button
+                onClick={handleDownloadInvoice}
+                className={`flex items-center justify-center space-x-2 px-6 py-3 rounded-lg transition-colors ${
+                  isAuthenticated 
+                    ? 'bg-golden-600 text-white hover:bg-golden-700' 
+                    : 'bg-gray-400 text-white hover:bg-gray-500 cursor-not-allowed'
+                }`}
+              >
+                <FiDownload className="h-5 w-5" />
+                <span>{isAuthenticated ? 'Download Invoice' : 'Sign In to Download'}</span>
+              </button>
+              {!isAuthenticated && (
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Check your email for the PDF
+                </p>
+              )}
+            </div>
             
             <button
               onClick={handleViewRequests}
@@ -182,7 +211,7 @@ const RequestConfirmation = () => {
                 </p>
                 <div className="space-y-2 text-blue-700">
                   <p>• Check your spam/junk folder</p>
-                  <p>• Contact us at <span className="font-semibold">info@oglasheabutter.com</span></p>
+                  <p>• Contact us at <span className="font-semibold">oglatrade@gmail.com</span></p>
                   <p>• Call us at <span className="font-semibold">+233 54 152 8841</span></p>
                 </div>
               </div>

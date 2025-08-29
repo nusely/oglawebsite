@@ -153,7 +153,7 @@ export const AuthProvider = ({ children }) => {
         email,
         firstName: 'John',
         lastName: 'Doe',
-        phone: '+233 XX XXX XXXX',
+        phone: '+233 54 152 8841',
         companyName: 'Sample Company Ltd',
         companyType: 'Manufacturing',
         companyRole: 'Manager/Director',

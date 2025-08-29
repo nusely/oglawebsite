@@ -112,7 +112,7 @@ const Contact = () => {
                     <FiPhone className="text-golden-500 mt-1 flex-shrink-0" />
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">Phone</h3>
-                      <p className="text-gray-600">+233 XX XXX XXXX</p>
+                      <p className="text-gray-600">+233 54 152 8841</p>
                     </div>
                   </div>
                   
@@ -120,7 +120,7 @@ const Contact = () => {
                     <FiMail className="text-golden-500 mt-1 flex-shrink-0" />
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">Email</h3>
-                      <p className="text-gray-600">info@oglatrading.com</p>
+                      <p className="text-gray-600">oglatrade@gmail.com</p>
                     </div>
                   </div>
                   

@@ -1,34 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { FiShoppingBag, FiPlus, FiCheck } from 'react-icons/fi';
-import { useProducts } from '../hooks/useProducts';
 import { useRequestBasket } from '../contexts/RequestBasketContext';
+import LazyImage from './LazyImage';
 
-const ProductCard = ({ product }) => {
-  const { getBrandBySlug } = useProducts();
-  const brand = getBrandBySlug(product.brandId);
+const ProductCard = ({ product, className = '' }) => {
   const { addToRequest, isInRequest, getItemQuantity } = useRequestBasket();
   const [isAddingToRequest, setIsAddingToRequest] = useState(false);
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-GH', {
-      style: 'currency',
-      currency: product.pricing.currency || 'GHS'
-    }).format(price);
-  };
-
-  const getBrandClass = (brandSlug) => {
-    switch (brandSlug) {
-      case 'la-veeda':
-        return 'brand-la-veeda';
-      case 'afrismocks':
-        return 'brand-afrismocks';
-      case 'ogribusiness':
-        return 'brand-ogribusiness';
-      default:
-        return '';
-    }
-  };
 
   const handleAddToRequest = async (e) => {
     e.preventDefault();
@@ -45,33 +24,46 @@ const ProductCard = ({ product }) => {
     }
   };
 
+  const formatPrice = (price) => {
+    if (!price || isNaN(price)) return 'GH₵0.00';
+    return new Intl.NumberFormat('en-GH', {
+      style: 'currency',
+      currency: 'GHS'
+    }).format(price);
+  };
+
+  // Get the correct price from product
+  const getProductPrice = (product) => {
+    if (product.pricing?.unitPrice) return product.pricing.unitPrice;
+    if (product.price) return product.price;
+    return 0;
+  };
+
   const isProductInRequest = isInRequest(product._id);
   const requestQuantity = getItemQuantity(product._id);
 
   return (
-    <div className={`group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col ${getBrandClass(brand?.slug)}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5 }}
+      className={`group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col ${className}`}
+    >
       {/* Product Image */}
       <div className="relative overflow-hidden aspect-square">
-        <img
-          src={product.images[0] || '/images/placeholder-product.jpg'}
+        <LazyImage
+          src={product.images?.[0] || product.image || '/images/product-placeholder.png'}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          placeholder="/images/product-placeholder.png"
         />
         
-        {/* Brand Badge */}
-        {brand && (
-          <div 
-            className="absolute top-2 left-2 sm:top-3 sm:left-3 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium text-white"
-            style={{ backgroundColor: brand.brandColors.primary }}
-          >
-            {brand.name}
-          </div>
-        )}
-        
         {/* Featured Badge */}
-        {product.isFeatured && (
-          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-golden-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium">
-            Featured
+        {product.featured && (
+          <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
+            <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded-full">
+              Featured
+            </span>
           </div>
         )}
         
@@ -83,9 +75,10 @@ const ProductCard = ({ product }) => {
               disabled={isAddingToRequest}
               className={`p-2 rounded-full shadow-lg transition-colors ${
                 isProductInRequest 
-                  ? 'bg-green-500 text-white' 
+                  ? 'text-white' 
                   : 'bg-white hover:bg-gray-50 text-gray-600'
               }`}
+              style={isProductInRequest ? { backgroundColor: '#8B6914' } : {}}
             >
               {isAddingToRequest ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
@@ -101,57 +94,54 @@ const ProductCard = ({ product }) => {
 
       {/* Product Info */}
       <div className="p-3 sm:p-4 flex-1 flex flex-col">
-        {/* Brand Name */}
-        {brand && (
-          <p 
-            className="text-xs font-medium mb-1"
-            style={{ color: brand.brandColors.primary }}
-          >
-            {brand.name}
+        {/* Brand */}
+        {product.brand && (
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+            {product.brand}
           </p>
         )}
         
         {/* Product Name */}
-        <Link to={`/products/${product.slug}`}>
-          <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-2 hover:text-golden-600 transition-colors line-clamp-2">
+        <Link to={`/product/${product.slug}`}>
+          <h3 className="text-lg sm:text-lg font-semibold text-gray-900 mb-2 transition-colors line-clamp-2 hover:text-golden-600">
             {product.name}
           </h3>
         </Link>
         
-        {/* Short Description - Fixed height */}
-        <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2 h-8 sm:h-10 flex items-center">
-          {product.shortDescription}
+        {/* Short Description */}
+        <p className="text-sm sm:text-sm text-gray-600 mb-3 line-clamp-2 h-8 sm:h-10 flex items-center">
+          {product.shortDescription || product.description || 'Natural product for all types'}
         </p>
         
         {/* Price */}
         <div className="flex items-center justify-between mb-3 mt-auto">
           <div>
-            <span className="text-base sm:text-lg font-bold text-gray-900">
-              {formatPrice(product.pricing.unitPrice)}
+            <span className="text-lg sm:text-lg font-bold text-gray-900">
+              {formatPrice(getProductPrice(product))}
             </span>
-            {product.pricing.bulkPricing && product.pricing.bulkPricing.length > 0 && (
-              <p className="text-xs text-gray-500">
+            {(product.pricing?.bulkPricing && product.pricing.bulkPricing.length > 0) || product.bulkPricing && (
+              <p className="text-sm text-gray-500">
                 Bulk pricing available
               </p>
             )}
           </div>
         </div>
         
-        {/* Variants */}
+        {/* Available Sizes/Variants */}
         {product.variants && product.variants.length > 0 && (
           <div className="mb-3">
-            <p className="text-xs text-gray-500 mb-1">Available in:</p>
+            <p className="text-sm text-gray-500 mb-1">Available in:</p>
             <div className="flex flex-wrap gap-1">
               {product.variants[0].options.slice(0, 3).map((option, index) => (
                 <span 
                   key={index}
-                  className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                  className="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded"
                 >
                   {option}
                 </span>
               ))}
               {product.variants[0].options.length > 3 && (
-                <span className="text-xs text-gray-500">
+                <span className="text-sm text-gray-500">
                   +{product.variants[0].options.length - 3} more
                 </span>
               )}
@@ -162,19 +152,18 @@ const ProductCard = ({ product }) => {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-auto">
           <Link 
-            to={`/products/${product.slug}`}
-            className="flex-1 btn btn-outline text-center text-xs sm:text-sm py-1.5 sm:py-2"
+            to={`/product/${product.slug}`}
+            className="flex-1 btn text-center text-sm sm:text-sm py-1.5 sm:py-2 bg-transparent border-2 border-golden-600 text-golden-600 hover:text-white hover:bg-golden-600 transition-all duration-200"
           >
             View Details
           </Link>
           <button
             onClick={handleAddToRequest}
             disabled={isAddingToRequest}
-            className={`flex-1 btn text-center text-xs sm:text-sm py-1.5 sm:py-2 ${
-              isProductInRequest 
-                ? 'btn-success' 
-                : 'btn-primary'
-            }`}
+            className="flex-1 btn text-center text-sm sm:text-sm py-1.5 sm:py-2 text-white transition-all duration-200"
+            style={{ 
+              backgroundColor: isProductInRequest ? '#8B6914' : '#b5a033' // deep ogla gold : golden-600
+            }}
           >
             {isAddingToRequest ? (
               <div className="flex items-center justify-center">
@@ -195,7 +184,7 @@ const ProductCard = ({ product }) => {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -93,7 +93,7 @@ const LegacyBrandPage = ({ brand, brandInfo, brandProducts, brandSlug }) => {
               Why Choose {brand.name}?
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               {brandInfo.features.map((feature, index) => (
                 <motion.div
                   key={index}

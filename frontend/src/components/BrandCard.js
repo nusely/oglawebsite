@@ -52,7 +52,7 @@ const BrandCard = ({ brand }) => {
 
   return (
     <Link 
-      to={`/brands/${brand.slug}`}
+      to={`/brand/${brand.slug}`}
       className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 block"
     >
       {/* Background Image */}

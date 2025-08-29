@@ -158,42 +158,156 @@ const SearchResults = ({
               <div className="space-y-4">
                 {currentProducts.map((product) => (
                   <motion.div
-                    key={product.id}
+                    key={product._id || product.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                    transition={{ duration: 0.3 }}
+                    className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow"
                   >
-                    <div className="flex items-center space-x-4">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-20 h-20 object-cover rounded-lg"
-                      />
-                                             <div className="flex-1">
-                         <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                           {product.name}
-                         </h3>
-                         <p className="text-sm text-gray-600 mb-2">{product.shortDescription}</p>
-                         <div className="flex items-center space-x-4 text-sm text-gray-500">
-                           <span className="bg-golden-50 text-golden-700 px-2 py-1 rounded-full">
-                             {product.brandId}
-                           </span>
-                           <span className="bg-gray-50 text-gray-700 px-2 py-1 rounded-full">
-                             {product.category}
-                           </span>
-                         </div>
-                       </div>
-                       <div className="text-right">
-                         <p className="text-2xl font-bold text-golden-600 mb-2">
-                           ${product.pricing?.unitPrice || product.price}
-                         </p>
-                         <button
-                           onClick={() => onAddToRequest(product)}
-                           className="bg-golden-600 text-white px-4 py-2 rounded-lg hover:bg-golden-700 transition-colors"
-                         >
-                           Add to Request
-                         </button>
-                       </div>
+                    {/* Desktop: Horizontal Layout */}
+                    <div className="hidden sm:flex items-center gap-4">
+                      {/* Product Image */}
+                      <div className="flex-shrink-0">
+                        <img
+                          src={product.images?.[0] || product.image || '/images/product-placeholder.png'}
+                          alt={product.name}
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                      </div>
+
+                      {/* Product Details */}
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          {product.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {product.shortDescription || product.description || 'Natural product for all types'}
+                        </p>
+                        
+                        {/* Available Sizes/Variants */}
+                        {product.variants && product.variants.length > 0 && (
+                          <div className="mb-2">
+                            <div className="flex flex-wrap gap-1">
+                              {product.variants[0].options.slice(0, 3).map((option, index) => (
+                                <span 
+                                  key={index}
+                                  className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                                >
+                                  {option}
+                                </span>
+                              ))}
+                              {product.variants[0].options.length > 3 && (
+                                <span className="text-xs text-gray-500">
+                                  +{product.variants[0].options.length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Price and Action */}
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-gray-900 mb-2">
+                          {new Intl.NumberFormat('en-GH', {
+                            style: 'currency',
+                            currency: 'GHS'
+                          }).format(product.pricing?.unitPrice || product.price || 0)}
+                        </p>
+                        {(product.pricing?.bulkPricing && product.pricing.bulkPricing.length > 0) || product.bulkPricing && (
+                          <p className="text-xs text-gray-500 mb-2">
+                            Bulk pricing available
+                          </p>
+                        )}
+                        <button
+                          onClick={() => onAddToRequest(product)}
+                          className="bg-golden-600 text-white px-4 py-2 rounded-lg hover:bg-golden-700 transition-colors font-medium"
+                        >
+                          Add to Request
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Mobile: Vertical Layout */}
+                    <div className="sm:hidden">
+                      {/* Product Image - Top */}
+                      <div className="relative mb-4">
+                        <img
+                          src={product.images?.[0] || product.image || '/images/product-placeholder.png'}
+                          alt={product.name}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        {/* Featured Badge */}
+                        {product.featured && (
+                          <div className="absolute top-3 left-3">
+                            <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                              Featured
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product Content */}
+                      <div>
+                        {/* Product Title */}
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          {product.name}
+                        </h3>
+                        
+                        {/* Product Description */}
+                        <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+                          {product.shortDescription || product.description || 'Natural product for all types'}
+                        </p>
+                        
+                        {/* Available Sizes/Variants */}
+                        {product.variants && product.variants.length > 0 && (
+                          <div className="mb-4">
+                            <div className="flex flex-wrap gap-2">
+                              {product.variants[0].options.slice(0, 3).map((option, index) => (
+                                <span 
+                                  key={index}
+                                  className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full"
+                                >
+                                  {option}
+                                </span>
+                              ))}
+                              {product.variants[0].options.length > 3 && (
+                                <span className="text-xs text-gray-500">
+                                  +{product.variants[0].options.length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Bottom Section with Semi-transparent Bar */}
+                        <div className="bg-gray-50 bg-opacity-50 -mx-4 px-4 py-3 mt-4">
+                          <div className="flex items-center justify-between">
+                            {/* Price Tag - Simple text, not a button */}
+                            <div className="text-lg font-bold text-gray-900">
+                              {new Intl.NumberFormat('en-GH', {
+                                style: 'currency',
+                                currency: 'GHS'
+                              }).format(product.pricing?.unitPrice || product.price || 0)}
+                            </div>
+                            
+                            {/* Add to Request Button */}
+                            <button
+                              onClick={() => onAddToRequest(product)}
+                              className="bg-golden-600 text-white px-6 py-2 rounded-lg hover:bg-golden-700 transition-colors font-medium"
+                            >
+                              Add to Request
+                            </button>
+                          </div>
+                          
+                          {/* Bulk Pricing Info */}
+                          {(product.pricing?.bulkPricing && product.pricing.bulkPricing.length > 0) || product.bulkPricing && (
+                            <p className="text-xs text-gray-600 mt-2 text-center">
+                              Bulk pricing available
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
