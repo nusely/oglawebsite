@@ -7,6 +7,8 @@ import BrandCard from '../components/BrandCard';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton, BrandCardSkeleton } from '../components/LoadingSkeleton';
 import SEOHead from '../components/SEOHead';
+import PartnersSection from '../components/PartnersSection';
+import StoryPopup from '../components/StoryPopup';
 
 const Home = () => {
   const { brands, getFeaturedProducts, loading } = useProducts();
@@ -70,6 +72,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
+      <StoryPopup />
       <SEOHead 
         title="Premium African Products - Shea Butter, Textiles & Business Solutions"
         description="Discover premium shea butter products, authentic African textiles, and innovative business solutions from Ghana"
@@ -676,6 +679,9 @@ const Home = () => {
           </div>
         </motion.div>
       </section>
+
+      {/* Partners Section */}
+      <PartnersSection />
 
       {/* CTA Section */}
       <section className="py-12 sm:py-16 bg-gradient-to-r from-golden-600 to-golden-700">

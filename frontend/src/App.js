@@ -34,6 +34,8 @@ const RequestConfirmation = lazy(() => import('./pages/RequestConfirmation'));
 const MyRequests = lazy(() => import('./pages/MyRequests'));
 const RequestBasketPage = lazy(() => import('./pages/RequestBasketPage'));
 const BrandPage = lazy(() => import('./pages/BrandPage'));
+const Stories = lazy(() => import('./pages/Stories'));
+const StoryDetail = lazy(() => import('./pages/StoryDetail'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function App() {
@@ -130,6 +132,36 @@ function App() {
                           >
                             <Breadcrumbs />
                             <Contact />
+                          </motion.div>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/stories" 
+                        element={
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <Breadcrumbs />
+                            <Stories />
+                          </motion.div>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/stories/:slug" 
+                        element={
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <Breadcrumbs />
+                            <StoryDetail />
                           </motion.div>
                         } 
                       />

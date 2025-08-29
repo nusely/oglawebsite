@@ -92,6 +92,15 @@ const Header = () => {
             </Link>
             
             <Link 
+              to="/stories" 
+              className={`text-sm font-medium transition-colors ${
+                isActive('/stories') ? 'text-golden-600' : 'text-gray-700 hover:text-golden-600'
+              }`}
+            >
+              Stories
+            </Link>
+            
+            <Link 
               to="/contact" 
               className={`text-sm font-medium transition-colors ${
                 isActive('/contact') ? 'text-golden-600' : 'text-gray-700 hover:text-golden-600'
@@ -287,6 +296,16 @@ const Header = () => {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Products
+              </Link>
+              
+              <Link 
+                to="/stories" 
+                className={`block text-sm font-medium transition-colors ${
+                  isActive('/stories') ? 'text-golden-600' : 'text-gray-700 hover:text-golden-600'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Stories
               </Link>
               
               <Link 

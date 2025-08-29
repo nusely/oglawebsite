@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FiUsers, FiHeart, FiFeather, FiTarget, FiAward, FiTrendingUp, FiArrowRight, FiMapPin, FiPhone, FiMail } from 'react-icons/fi';
+import PartnersSection from '../components/PartnersSection';
 
 const About = () => {
   const missionAreas = [
@@ -260,6 +261,9 @@ const About = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Partners Section */}
+      <PartnersSection />
 
              {/* Impact & Future Section */}
        <section className="py-24 bg-gradient-to-br from-golden-600 to-golden-700">

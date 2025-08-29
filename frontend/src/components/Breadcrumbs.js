@@ -28,7 +28,8 @@ const Breadcrumbs = () => {
       'request-form': 'Request Form',
       'request-confirmation': 'Request Confirmation',
       'my-requests': 'My Requests',
-      'request-basket': 'Request Basket'
+      'request-basket': 'Request Basket',
+      'stories': 'Stories & News'
     };
 
     // Check if this is a product ID (numeric or alphanumeric)
