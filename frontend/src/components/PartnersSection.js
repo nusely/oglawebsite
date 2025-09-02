@@ -10,25 +10,25 @@ const PartnersSection = ({ className = '' }) => {
     {
       id: 1,
       name: "Ghana Shea Alliance",
-             logo: "/images/imageplaceholder.webp",
+             logo: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651314/ogla/static/imageplaceholder.webp/imageplaceholder.png",
       description: "Leading organization promoting sustainable shea butter production in Ghana"
     },
     {
       id: 2,
       name: "TWIS",
-             logo: "/images/imageplaceholder.webp",
+             logo: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651314/ogla/static/imageplaceholder.webp/imageplaceholder.png",
       description: "International development organization supporting local communities"
     },
     {
       id: 3,
       name: "ABC Business Consult",
-             logo: "/images/imageplaceholder.webp",
+             logo: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651314/ogla/static/imageplaceholder.webp/imageplaceholder.png",
       description: "Strategic business consulting and market development partners"
     },
     {
       id: 4,
       name: "Local Textile Association",
-             logo: "/images/imageplaceholder.webp",
+             logo: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651314/ogla/static/imageplaceholder.webp/imageplaceholder.png",
       description: "Preserving and promoting traditional Ghanaian textile craftsmanship"
     }
   ];

@@ -3,15 +3,17 @@
 
 import jsPDF from "jspdf";
 
+// Note: This is now primarily handled by the backend
+// Frontend should use the invoice number returned from the API
 export const generateInvoiceNumber = () => {
   const year = new Date().getFullYear();
   const yearShort = year.toString().slice(-2);
   const existingRequests = JSON.parse(localStorage.getItem("ogla_requests") || "[]");
   const yearRequests = existingRequests.filter((req) =>
-    req.invoiceNumber.startsWith(`OGP-${yearShort}`)
+    req.invoiceNumber.startsWith(`OGL-${yearShort}`)
   );
   const nextNumber = yearRequests.length + 1;
-  return `OGP-${String(nextNumber).padStart(3, "0")}${yearShort}`;
+  return `OGL-${String(nextNumber).padStart(3, "0")}${yearShort}`;
 };
 
 export const formatPrice = (price) => {
@@ -29,13 +31,20 @@ export const formatDate = (dateString) => {
   });
 };
 
-export const generateProformaInvoice = async (invoiceData) => {
+export const generateProformaInvoice = async (invoiceData, isAdminDownload = false) => {
   try {
-    const letterheadUrl = `${window.location.origin}/images/OGLA_SHEA_lh.jpg`;
-    const invoiceHTML = createInvoiceHTML(invoiceData, letterheadUrl);
+    const letterheadUrl = `https://res.cloudinary.com/dpznya3mz/image/upload/v1756651336/ogla/static/OGLA_SHEA_lh.jpg`;
+    const invoiceHTML = createInvoiceHTML(invoiceData, letterheadUrl, isAdminDownload);
     const pdfBlob = await generatePDF(invoiceHTML);
-    downloadPDF(pdfBlob, `Proforma_Invoice_${invoiceData.invoiceNumber}.pdf`);
-    await sendInvoiceEmail(invoiceData);
+    const filename = isAdminDownload 
+      ? `Admin_Invoice_${invoiceData.invoiceNumber}_${new Date().toISOString().split('T')[0]}.pdf`
+      : `Proforma_Invoice_${invoiceData.invoiceNumber}.pdf`;
+    downloadPDF(pdfBlob, filename);
+    
+    if (!isAdminDownload) {
+      await sendInvoiceEmail(invoiceData);
+    }
+    
     return true;
   } catch (error) {
     console.error("Error generating invoice:", error);
@@ -43,8 +52,8 @@ export const generateProformaInvoice = async (invoiceData) => {
   }
 };
 
-const createInvoiceHTML = (invoiceData, letterheadUrl) => {
-  const { invoiceNumber, customer, items, totalAmount, submittedAt } = invoiceData;
+const createInvoiceHTML = (invoiceData, letterheadUrl, isAdminDownload = false) => {
+  const { invoiceNumber, customer, items, totalAmount, submittedAt, adminStamp } = invoiceData;
 
   return `
   <div style="
@@ -120,6 +129,20 @@ const createInvoiceHTML = (invoiceData, letterheadUrl) => {
         <li>All disputes are subject to Ghanaian law</li>
       </ul>
     </div>
+    
+    ${isAdminDownload && adminStamp ? `
+    <div style="margin-top:20px; padding:15px; background:rgba(220,53,69,0.1); border:2px solid #dc3545; border-radius:8px;">
+      <div style="text-align:center; color:#dc3545; font-weight:bold; font-size:1.2em; margin-bottom:10px;">
+        ⚫ ADMIN COPY ⚫
+      </div>
+      <div style="font-size:0.8em; color:#666;">
+        <div><strong>Downloaded by:</strong> ${adminStamp.downloadedBy}</div>
+        <div><strong>Download Date:</strong> ${formatDate(adminStamp.downloadedAt)}</div>
+        <div><strong>Admin Email:</strong> ${adminStamp.adminEmail}</div>
+        <div style="margin-top:8px; font-style:italic;">This copy was generated for administrative purposes.</div>
+      </div>
+    </div>
+    ` : ''}
   </div>`;
 };
 
@@ -127,28 +150,77 @@ const generatePDF = async (htmlContent) => {
   const { jsPDF } = await import("jspdf");
   const html2canvas = await import("html2canvas");
 
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = htmlContent;
-  tempDiv.style.position = "absolute";
-  tempDiv.style.left = "-9999px";
-  tempDiv.style.width = "210mm";
-  tempDiv.style.height = "297mm";
-  document.body.appendChild(tempDiv);
+  // First, convert the letterhead image to base64 to avoid CORS issues
+  const letterheadUrl = 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651336/ogla/static/OGLA_SHEA_lh.jpg';
+  
+  try {
+    // Convert external image to base64
+    const response = await fetch(letterheadUrl);
+    const blob = await response.blob();
+    const reader = new FileReader();
+    
+    const base64Promise = new Promise((resolve, reject) => {
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+    });
+    
+    reader.readAsDataURL(blob);
+    const base64Image = await base64Promise;
+    
+    // Replace the external URL with base64 in the HTML
+    const htmlWithBase64 = htmlContent.replace(letterheadUrl, base64Image);
+    
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = htmlWithBase64;
+    tempDiv.style.position = "absolute";
+    tempDiv.style.left = "-9999px";
+    tempDiv.style.width = "210mm";
+    tempDiv.style.height = "297mm";
+    document.body.appendChild(tempDiv);
 
-  const canvas = await html2canvas.default(tempDiv, {
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    backgroundColor: "#ffffff",
-  });
+    const canvas = await html2canvas.default(tempDiv, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: "#ffffff",
+      allowTaint: true,
+    });
 
-  document.body.removeChild(tempDiv);
+    document.body.removeChild(tempDiv);
 
-  const pdf = new jsPDF("p", "mm", "a4");
-  const imgData = canvas.toDataURL("image/jpeg", 0.95);
-  pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+    const pdf = new jsPDF("p", "mm", "a4");
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
 
-  return pdf.output("blob");
+    return pdf.output("blob");
+    
+  } catch (error) {
+    console.error("Error converting letterhead to base64:", error);
+    
+    // Fallback: generate PDF without letterhead
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = htmlContent;
+    tempDiv.style.position = "absolute";
+    tempDiv.style.left = "-9999px";
+    tempDiv.style.width = "210mm";
+    tempDiv.style.height = "297mm";
+    document.body.appendChild(tempDiv);
+
+    const canvas = await html2canvas.default(tempDiv, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: "#ffffff",
+    });
+
+    document.body.removeChild(tempDiv);
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+
+    return pdf.output("blob");
+  }
 };
 
 const downloadPDF = (blob, filename) => {
@@ -166,9 +238,11 @@ const sendInvoiceEmail = async (invoiceData) => {
   console.log("Pretend email sent:", invoiceData.invoiceNumber);
 };
 
-export default {
+const invoiceGenerator = {
   generateInvoiceNumber,
   formatPrice,
   formatDate,
   generateProformaInvoice,
 };
+
+export default invoiceGenerator;

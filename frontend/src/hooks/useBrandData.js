@@ -8,32 +8,27 @@ export const useBrandData = (brandSlug) => {
           testimonials: [
             {
               id: 1,
-              customerImage: '/images/brands/laveeda/la veeda model 2 2.jpg',
+              customerImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651280/ogla/static/brands/laveeda/la%20veeda%20model%202%202.jpg/la_veeda_model_2_2.jpg',
               customerName: 'Customer 1',
               reviewCount: '45',
               productName: 'Pure Shea Butter'
             },
             {
               id: 2,
-              customerImage: '/images/brands/laveeda/la veeda model 4.jpg',
+              customerImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651281/ogla/static/brands/laveeda/la%20veeda%20model%204.jpg/la_veeda_model_4.jpg',
               customerName: 'Customer 2',
               reviewCount: '231',
               productName: '250ml Shea Butter'
             }
           ],
-          featuredProduct: {
-            name: 'Avocado infused body butter',
-            description: 'Advanced hydration with natural shea butter and essential oils',
-            price: '₵156.00',
-            image: '/images/brands/laveeda/renew.jpg'
-          },
+          featuredProduct: null, // Will be fetched from database
           brandColors: {
             primary: '#1e4735',
             secondary: '#e8d77c',
             accent: '#ffffff'
           },
           customBackground: `linear-gradient(rgba(30, 71, 53, 0.4), rgba(30, 71, 53, 0.4)), url('/images/laveeda-truck-Branding.webp')`,
-          customLogo: '/images/la-veeda-icon.png',
+          customLogo: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651327/ogla/static/la-veeda-icon.png/la-veeda-icon.png',
           showTestimonials: true
         };
       
@@ -42,32 +37,27 @@ export const useBrandData = (brandSlug) => {
            testimonials: [
              {
                id: 1,
-               customerImage: '/images/brands/afrismocks/Image_testimonial3.webp',
+               customerImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651266/ogla/static/brands/afrismocks/Image_testimonial3.webp/Image_testimonial3.jpg',
                customerName: 'Fashion Enthusiast',
                reviewCount: '20',
                productName: 'Traditional Smock'
              },
              {
                id: 2,
-               customerImage: '/images/brands/afrismocks/Image_testimonial4.webp',
+               customerImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651268/ogla/static/brands/afrismocks/Image_testimonial4.webp/Image_testimonial4.jpg',
                customerName: 'Cultural Ambassador',
                reviewCount: '51',
                productName: 'Kente Cloth'
              }
            ],
-           featuredProduct: {
-             name: 'Premium Kente Smock Collection',
-             description: 'Handcrafted traditional smocks with authentic Kente patterns',
-             price: '₵450.00',
-             image: '/images/brands/afrismock_cat/Kente_afrismock.webp'
-           },
+                     featuredProduct: null, // Will be fetched from database
            brandColors: {
              primary: '#1E40AF',
              secondary: '#3B82F6',
              accent: '#FFFFFF'
            },
-           customBackground: `linear-gradient(rgba(30, 64, 175, 0.4), rgba(59, 130, 246, 0.4)), url('/images/afrismocks_card.webp')`,
-           customLogo: '/images/afrismocks-icon.png',
+           customBackground: `linear-gradient(rgba(30, 64, 175, 0.4), rgba(59, 130, 246, 0.4)), url('https://res.cloudinary.com/dpznya3mz/image/upload/v1756651258/ogla/static/afrismocks_card.webp/afrismocks_card.jpg')`,
+           customLogo: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651255/ogla/static/afrismocks-icon.png/afrismocks-icon.png',
            showTestimonials: true
          };
       
@@ -76,32 +66,27 @@ export const useBrandData = (brandSlug) => {
           testimonials: [
             {
               id: 1,
-              customerImage: '/images/brands/ogribusiness/Image_testimonial1.webp',
+              customerImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651299/ogla/static/brands/ogribusiness/Image_testimonial1.webp/Image_testimonial1.jpg',
               customerName: 'Local Farmer',
               reviewCount: '15',
               productName: 'Premium Beans'
             },
             {
               id: 2,
-              customerImage: '/images/brands/ogribusiness/Image_testimonial2.webp',
+              customerImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651300/ogla/static/brands/ogribusiness/Image_testimonial2.webp/Image_testimonial2.jpg',
               customerName: 'Export Partner',
               reviewCount: '90',
               productName: 'Bulk Farm Produce'
             }
           ],
-          featuredProduct: {
-            name: 'Premium White Beans - 25kg',
-            description: 'High-quality white beans sourced from Northern Ghana farms',
-            price: '₵280.00',
-            image: '/images/brands/ogribusiness_cat/5kg_Ogri_Beans.webp'
-          },
+          featuredProduct: null, // Will be fetched from database
           brandColors: {
             primary: '#2E7D32',
             secondary: '#4CAF50',
             accent: '#8BC34A'
           },
-          customBackground: `linear-gradient(rgba(46, 125, 50, 0.4), rgba(76, 175, 80, 0.4)), url('/images/ogribusiness_card.webp')`,
-          customLogo: '/images/ogribusiness-icon.png',
+          customBackground: `linear-gradient(rgba(46, 125, 50, 0.4), rgba(76, 175, 80, 0.4)), url('https://res.cloudinary.com/dpznya3mz/image/upload/v1756651338/ogla/static/ogribusiness_card.webp/ogribusiness_card.png')`,
+          customLogo: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651337/ogla/static/ogribusiness-icon.png/ogribusiness-icon.png',
           showTestimonials: true
         };
       

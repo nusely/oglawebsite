@@ -8,7 +8,7 @@ const RequestConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const { invoiceNumber, totalAmount } = location.state || {};
+  const { invoiceNumber, totalAmount, isGuest, customerEmail } = location.state || {};
 
   // Redirect if no invoice data
   if (!invoiceNumber) {
@@ -79,7 +79,10 @@ const RequestConfirmation = () => {
               Request Submitted Successfully!
             </h1>
             <p className="text-xl text-gray-600">
-              Your Proforma Invoice has been generated and sent to your email
+              {isGuest 
+                ? `Your Proforma Invoice has been generated and sent to ${customerEmail}`
+                : 'Your Proforma Invoice has been generated and sent to your email'
+              }
             </p>
           </motion.div>
 
@@ -141,6 +144,31 @@ const RequestConfirmation = () => {
             </div>
           </motion.div>
 
+          {/* Guest User Notice */}
+          {isGuest && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8"
+            >
+              <div className="flex items-start space-x-3">
+                <FiMail className="h-6 w-6 text-blue-600 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                    Guest User - Invoice Sent to Email
+                  </h3>
+                  <p className="text-blue-800 mb-3">
+                    Since you submitted this request as a guest, your Proforma Invoice has been sent to <strong>{customerEmail}</strong>.
+                  </p>
+                  <p className="text-blue-700">
+                    To download invoices instantly and track your requests in the future, consider creating an account.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Action Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -162,7 +190,10 @@ const RequestConfirmation = () => {
               </button>
               {!isAuthenticated && (
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  Check your email for the PDF
+                  {isGuest 
+                    ? `Invoice sent to ${customerEmail}`
+                    : 'Check your email for the PDF'
+                  }
                 </p>
               )}
             </div>

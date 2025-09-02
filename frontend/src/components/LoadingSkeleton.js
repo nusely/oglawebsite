@@ -143,7 +143,7 @@ export const Skeleton = ({ className = "h-4 bg-gray-200 rounded", width = "w-ful
   />
 );
 
-export default {
+const LoadingSkeleton = {
   ProductCardSkeleton,
   HeroSkeleton,
   BrandCardSkeleton,
@@ -152,3 +152,5 @@ export default {
   PageLoadingSkeleton,
   Skeleton
 };
+
+export default LoadingSkeleton;

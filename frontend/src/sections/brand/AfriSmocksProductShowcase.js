@@ -5,8 +5,8 @@ import { FiArrowRight, FiStar } from 'react-icons/fi';
 import BrandProductCard from '../../components/BrandProductCard';
 
 const AfriSmocksProductShowcase = ({ products, brandColors }) => {
-  // Filter AfriSmocks products (brandId: '2')
-  const afriSmocksProducts = products.filter(product => product.brandId === '2');
+  // Filter AfriSmocks products (brandId: 2)
+  const afriSmocksProducts = products.filter(product => product.brandId == 2);
 
   if (afriSmocksProducts.length === 0) {
     return null;

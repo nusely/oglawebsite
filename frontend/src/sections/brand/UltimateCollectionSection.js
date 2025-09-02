@@ -1,16 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiStar, FiUsers, FiFeather } from 'react-icons/fi';
 import { useRequestBasket } from '../../contexts/RequestBasketContext';
+import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const UltimateCollectionSection = ({ 
   title = "The Ultimate Skincare Collection",
   description = "Experience the transformative power of natural shea butter. Our products are designed to nourish, protect, and enhance your natural beauty with ingredients sourced from the heart of Northern Ghana.",
-  featuredProduct = null,
+  featuredProduct: propFeaturedProduct = null,
   customerStats = { count: "10,000+", label: "Happy Customers" },
   brandColors = { primary: '#1e4735', secondary: '#e8d77c' }
 }) => {
   const { addToRequest, isInRequest } = useRequestBasket();
+  const [featuredProduct, setFeaturedProduct] = useState(propFeaturedProduct);
+  const [loading, setLoading] = useState(!propFeaturedProduct);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchFeaturedProduct = async () => {
+      try {
+        const response = await api.get('/brand-featured-products/brand/laveeda');
+        if (response.data.success && response.data.data.featuredProduct) {
+          setFeaturedProduct(response.data.data.featuredProduct);
+        }
+      } catch (error) {
+        console.error('Error fetching featured product:', error);
+        // Fallback to prop if API fails
+        setFeaturedProduct(propFeaturedProduct);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!propFeaturedProduct) {
+      fetchFeaturedProduct();
+    }
+  }, [propFeaturedProduct]);
   return (
     <section className="relative py-24 bg-[#1e4735] text-white">
       <div className="container">
@@ -46,7 +72,12 @@ const UltimateCollectionSection = ({
             className="relative"
           >
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8">
-              {featuredProduct ? (
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                  <p className="text-white/60">Loading featured product...</p>
+                </div>
+              ) : featuredProduct ? (
                 <>
                   <div className="relative h-80 overflow-hidden rounded-xl mb-6">
                     <img
@@ -65,16 +96,19 @@ const UltimateCollectionSection = ({
                       ))}
                     </div>
                   </div>
-                                                        <button 
-                     className={`w-full px-6 py-3 rounded-full transition-all duration-300 font-semibold ${
-                       isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`)
-                         ? 'bg-green-500 text-white hover:bg-green-600'
-                         : 'bg-[#e8d77c] text-[#1e4735] hover:bg-white'
-                     }`}
-                     onClick={() => addToRequest(featuredProduct)}
-                   >
-                     {isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`) ? '✓ Added to Request' : 'Add to Request'}
-                   </button>
+                  {/* Add to Request Button - Hidden for admins */}
+                  {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
+                    <button 
+                      className={`w-full px-6 py-3 rounded-full transition-all duration-300 font-semibold ${
+                        isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`)
+                          ? 'bg-green-500 text-white hover:bg-green-600'
+                          : 'bg-[#e8d77c] text-[#1e4735] hover:bg-white'
+                      }`}
+                      onClick={() => addToRequest(featuredProduct)}
+                    >
+                      {isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`) ? '✓ Added to Request' : 'Add to Request'}
+                    </button>
+                  )}
                 </>
               ) : (
                 <div className="text-center py-12">

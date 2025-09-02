@@ -1,13 +1,18 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX } from 'react-icons/fi';
+import { useProducts } from '../hooks/useProducts';
 
 const FilterTags = ({ filters, onRemoveFilter, onClearAll }) => {
+  const { brands } = useProducts();
   const activeFilters = [];
 
   // Extract active filters from the filters object
   if (filters.brand) {
-    activeFilters.push({ type: 'brand', label: filters.brand, value: filters.brand });
+    // Find brand name from ID
+    const brand = brands.find(b => (b._id || b.id) == filters.brand);
+    const brandName = brand ? brand.name : `Brand ${filters.brand}`;
+    activeFilters.push({ type: 'brand', label: brandName, value: filters.brand });
   }
   if (filters.category) {
     activeFilters.push({ type: 'category', label: filters.category, value: filters.category });
@@ -17,7 +22,7 @@ const FilterTags = ({ filters, onRemoveFilter, onClearAll }) => {
     const max = filters.priceRange.max || '∞';
     activeFilters.push({ 
       type: 'price', 
-      label: `$${min} - $${max}`, 
+      label: `GHS ${min} - GHS ${max}`, 
       value: { min, max } 
     });
   }

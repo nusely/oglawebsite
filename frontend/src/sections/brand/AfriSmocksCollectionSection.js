@@ -1,16 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiStar, FiUsers, FiHeart } from 'react-icons/fi';
 import { useRequestBasket } from '../../contexts/RequestBasketContext';
+import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AfriSmocksCollectionSection = ({ 
   title = "The Ultimate Fashion Collection",
   description = "Experience the vibrant culture of Ghana through our handcrafted traditional smocks and contemporary African fashion. Each piece tells a story of heritage, craftsmanship, and modern style.",
-  featuredProduct = null,
+  featuredProduct: propFeaturedProduct = null,
   customerStats = { count: "500+", label: "Happy Customers" },
      brandColors = { primary: '#1E40AF', secondary: '#3B82F6', accent: '#FFFFFF' }
 }) => {
   const { addToRequest, isInRequest } = useRequestBasket();
+  const [featuredProduct, setFeaturedProduct] = useState(propFeaturedProduct);
+  const [loading, setLoading] = useState(!propFeaturedProduct);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchFeaturedProduct = async () => {
+      try {
+        const response = await api.get('/brand-featured-products/brand/afrismocks');
+        if (response.data.success && response.data.data.featuredProduct) {
+          setFeaturedProduct(response.data.data.featuredProduct);
+        }
+      } catch (error) {
+        console.error('Error fetching featured product:', error);
+        // Fallback to prop if API fails
+        setFeaturedProduct(propFeaturedProduct);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!propFeaturedProduct) {
+      fetchFeaturedProduct();
+    }
+  }, [propFeaturedProduct]);
   return (
          <section className="relative py-24 bg-[#1E40AF] text-white">
       <div className="container">
@@ -46,7 +72,12 @@ const AfriSmocksCollectionSection = ({
             className="relative"
           >
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8">
-              {featuredProduct ? (
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                  <p className="text-white/60">Loading featured product...</p>
+                </div>
+              ) : featuredProduct ? (
                 <>
                   <div className="relative h-80 overflow-hidden rounded-xl mb-6">
                     <img
@@ -58,23 +89,26 @@ const AfriSmocksCollectionSection = ({
                   <h3 className="text-2xl font-bold mb-2">{featuredProduct.name}</h3>
                   <p className="text-white/80 mb-4">{featuredProduct.description}</p>
                   <div className="flex items-center justify-between mb-4">
-                                         <span className="text-3xl font-bold text-[#FFFFFF]">{featuredProduct.price}</span>
+                    <span className="text-3xl font-bold text-[#FFFFFF]">{featuredProduct.price}</span>
                     <div className="flex items-center space-x-1">
                       {[...Array(5)].map((_, i) => (
                         <FiStar key={i} className="text-yellow-400 text-sm fill-current" />
                       ))}
                     </div>
                   </div>
-                                                                           <button 
-                     className={`w-full px-6 py-3 rounded-full transition-all duration-300 font-semibold ${
-                       isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`)
-                         ? 'bg-green-500 text-white hover:bg-green-600'
-                         : 'bg-[#FFFFFF] text-[#1E40AF] hover:bg-blue-50'
-                     }`}
-                     onClick={() => addToRequest(featuredProduct)}
-                   >
-                     {isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`) ? '✓ Added to Request' : 'Add to Request'}
-                   </button>
+                  {/* Add to Request Button - Hidden for admins */}
+                  {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
+                    <button 
+                      className={`w-full px-6 py-3 rounded-full transition-all duration-300 font-semibold ${
+                        isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`)
+                          ? 'bg-green-500 text-white hover:bg-green-600'
+                          : 'bg-[#FFFFFF] text-[#1E40AF] hover:bg-blue-50'
+                      }`}
+                      onClick={() => addToRequest(featuredProduct)}
+                    >
+                      {isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`) ? '✓ Added to Request' : 'Add to Request'}
+                    </button>
+                  )}
                 </>
               ) : (
                 <div className="text-center py-12">

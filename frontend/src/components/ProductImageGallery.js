@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiChevronLeft, FiChevronRight, FiZoomIn } from 'react-icons/fi';
+import { getImageUrl } from '../utils/imageUtils';
 
 const ProductImageGallery = ({ images, productName }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -32,7 +33,7 @@ const ProductImageGallery = ({ images, productName }) => {
       <div className="relative group">
         <motion.img
           key={currentImageIndex}
-          src={images[currentImageIndex]}
+          src={getImageUrl(images[currentImageIndex])}
           alt={`${productName} - Image ${currentImageIndex + 1}`}
           className="w-full h-96 object-cover rounded-lg cursor-pointer"
           initial={{ opacity: 0 }}
@@ -86,7 +87,7 @@ const ProductImageGallery = ({ images, productName }) => {
               }`}
             >
               <img
-                src={image}
+                src={getImageUrl(image)}
                 alt={`${productName} thumbnail ${index + 1}`}
                 className="w-full h-full object-cover"
               />
@@ -115,7 +116,7 @@ const ProductImageGallery = ({ images, productName }) => {
               
               <motion.img
                 key={currentImageIndex}
-                src={images[currentImageIndex]}
+                src={getImageUrl(images[currentImageIndex])}
                 alt={`${productName} - Image ${currentImageIndex + 1}`}
                 className="max-w-full max-h-full object-contain"
                 initial={{ scale: 0.8, opacity: 0 }}

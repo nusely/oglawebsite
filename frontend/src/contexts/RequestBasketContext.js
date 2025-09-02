@@ -1,16 +1,16 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
-// Request item structure
-const RequestItem = {
-  _id: '',
-  name: '',
-  price: 0,
-  image: '',
-  brandId: '',
-  brandName: '',
-  quantity: 1,
-  slug: ''
-};
+// Request item structure (for reference)
+// const RequestItem = {
+//   _id: '',
+//   name: '',
+//   price: 0,
+//   image: '',
+//   brandId: '',
+//   brandName: '',
+//   quantity: 1,
+//   slug: ''
+// };
 
 // Request basket state structure
 const initialState = {

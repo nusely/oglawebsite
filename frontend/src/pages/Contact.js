@@ -10,7 +10,7 @@ const Contact = () => {
          <div 
            className="absolute inset-0 bg-cover bg-center"
            style={{
-             backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/hero/laveeda -truck-Branding.webp')`
+             backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://res.cloudinary.com/dpznya3mz/image/upload/v1756651306/ogla/static/hero/laveeda%20-truck-Branding.webp/laveeda_-truck-Branding.jpg')`
            }}
          />
         

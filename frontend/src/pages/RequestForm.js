@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { FiUser, FiMail, FiMapPin, FiFileText, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import { useRequestBasket } from '../contexts/RequestBasketContext';
 import { useAuth } from '../contexts/AuthContext';
-import { generateInvoiceNumber, generateProformaInvoice } from '../utils/invoiceGenerator';
+import { generateProformaInvoice } from '../utils/invoiceGenerator';
+import api from '../services/api';
 
 const RequestForm = () => {
   const navigate = useNavigate();
@@ -107,13 +108,12 @@ const RequestForm = () => {
     }
 
     // Check if user is authenticated
-    if (!user) {
+    if (!user || !user.email) {
       // Store the form data for later submission
       setPendingSubmission(formData);
       setShowAuthModal(true);
       return;
     }
-
     // User is authenticated, proceed with submission
     await submitRequest(formData);
   };
@@ -127,48 +127,59 @@ const RequestForm = () => {
       console.log('Request items:', requestItems);
       console.log('Total amount:', totalAmount);
 
-      // Generate proforma invoice
-      const invoiceData = {
-        invoiceNumber: generateInvoiceNumber(),
-        customer: submissionData,
+      // Submit request to backend API
+      const requestPayload = {
         items: requestItems || [],
         totalAmount: totalAmount || 0,
-        submittedAt: new Date().toISOString(),
-        status: 'pending'
+        notes: submissionData.notes || '',
+        customerData: submissionData
       };
 
-      console.log('Invoice data created:', invoiceData);
+      console.log('Submitting to backend:', requestPayload);
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await api.post('/requests', requestPayload);
+      const { requestNumber } = response.data.data;
 
-      // Store in localStorage for demo (in real app, this would go to backend)
-      const existingRequests = JSON.parse(localStorage.getItem('ogla_requests') || '[]');
-      existingRequests.push(invoiceData);
-      localStorage.setItem('ogla_requests', JSON.stringify(existingRequests));
+      console.log('Request submitted successfully, invoice number:', requestNumber);
 
-      console.log('Request stored in localStorage');
-
-      // Store full invoice data for download
-      localStorage.setItem(`invoice_${invoiceData.invoiceNumber}`, JSON.stringify(invoiceData));
-
-      // Only generate and send email for authenticated users
-      if (user) { // Assuming user is available from useAuth
-        console.log('Starting PDF generation...');
+      // Handle PDF generation based on user status
+      if (user) {
+        // Logged-in user - generate PDF immediately
+        console.log('Starting PDF generation for logged-in user...');
+        const invoiceData = {
+          invoiceNumber: requestNumber,
+          customer: submissionData,
+          items: requestItems || [],
+          totalAmount: totalAmount || 0,
+          submittedAt: new Date().toISOString(),
+          status: 'pending'
+        };
+        
         await generateProformaInvoice(invoiceData);
         console.log('PDF generation completed');
+        
+        // Mark PDF as generated in backend
+        try {
+          await api.post(`/requests/${requestNumber}/pdf-generated`);
+          console.log('PDF generation recorded in backend');
+        } catch (pdfError) {
+          console.warn('Failed to record PDF generation:', pdfError);
+        }
       } else {
-        console.log('Guest user - invoice will be generated after sign in');
+        // Guest user - invoice will be emailed
+        console.log('Guest user - invoice will be emailed to:', submissionData.email);
       }
 
       // Clear request basket
       clearRequest();
 
-      // Navigate to confirmation page
+      // Navigate to confirmation page with appropriate state
       navigate('/request-confirmation', { 
         state: { 
-          invoiceNumber: invoiceData.invoiceNumber,
-          totalAmount: totalAmount || 0
+          invoiceNumber: requestNumber,
+          totalAmount: totalAmount || 0,
+          isGuest: !user,
+          customerEmail: submissionData.email
         } 
       });
 
@@ -251,6 +262,8 @@ const RequestForm = () => {
             </p>
           </div>
 
+
+
           {/* Proforma Invoice Notice */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -285,187 +298,229 @@ const RequestForm = () => {
                 className="bg-white rounded-2xl shadow-lg p-8"
               >
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Personal Information */}
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                      <FiUser className="h-5 w-5 mr-2 text-golden-600" />
-                      Personal Information
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          First Name *
-                        </label>
-                        <input
-                          type="text"
-                          name="firstName"
-                          value={formData.firstName}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
-                            errors.firstName ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors.firstName && (
-                          <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Last Name *
-                        </label>
-                        <input
-                          type="text"
-                          name="lastName"
-                          value={formData.lastName}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
-                            errors.lastName ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors.lastName && (
-                          <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Contact Information */}
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                      <FiMail className="h-5 w-5 mr-2 text-golden-600" />
-                      Contact Information
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Email Address *
-                        </label>
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
-                            errors.email ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors.email && (
-                          <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Phone Number *
-                        </label>
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
-                            errors.phone ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors.phone && (
-                          <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Company Information */}
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                      <FiUser className="h-5 w-5 mr-2 text-golden-600" />
-                      Company Information
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Company Name *
-                        </label>
-                        <input
-                          type="text"
-                          name="companyName"
-                          value={formData.companyName}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
-                            errors.companyName ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors.companyName && (
-                          <p className="mt-1 text-sm text-red-600">{errors.companyName}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Company Type *
-                        </label>
-                        <select
-                          name="companyType"
-                          value={formData.companyType}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
-                            errors.companyType ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        >
-                          <option value="">Select Type</option>
-                          <option value="Agriculture & Farming">Agriculture & Farming</option>
-                          <option value="Food & Beverage">Food & Beverage</option>
-                          <option value="Cosmetics & Beauty">Cosmetics & Beauty</option>
-                          <option value="Textiles & Fashion">Textiles & Fashion</option>
-                          <option value="Healthcare & Pharmaceuticals">Healthcare & Pharmaceuticals</option>
-                          <option value="Retail & Wholesale">Retail & Wholesale</option>
-                          <option value="Manufacturing">Manufacturing</option>
-                          <option value="Export/Import">Export/Import</option>
-                          <option value="Other">Other</option>
-                        </select>
-                        {errors.companyType && (
-                          <p className="mt-1 text-sm text-red-600">{errors.companyType}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Your Role *
-                      </label>
-                      <select
-                        name="companyRole"
-                        value={formData.companyRole}
-                        onChange={handleInputChange}
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
-                          errors.companyRole ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                      >
-                        <option value="">Select Role</option>
-                        <option value="Owner/CEO">Owner/CEO</option>
-                        <option value="Manager/Director">Manager/Director</option>
-                        <option value="Purchasing Manager">Purchasing Manager</option>
-                        <option value="Procurement Officer">Procurement Officer</option>
-                        <option value="Sales Manager">Sales Manager</option>
-                        <option value="Marketing Manager">Marketing Manager</option>
-                        <option value="Operations Manager">Operations Manager</option>
-                        <option value="Business Development">Business Development</option>
-                        <option value="Consultant">Consultant</option>
-                        <option value="Employee">Employee</option>
-                        <option value="Other">Other</option>
-                      </select>
-                      {errors.companyRole && (
-                        <p className="mt-1 text-sm text-red-600">{errors.companyRole}</p>
-                      )}
-                    </div>
-                    
-                    {/* Company Address */}
-                    <div className="mt-6">
-                      <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                        <FiMapPin className="h-4 w-4 mr-2 text-golden-600" />
-                        Company Address
-                      </h4>
+                  {/* Personal Information - Only show for guest users */}
+                  {!user && (
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <FiUser className="h-5 w-5 mr-2 text-golden-600" />
+                        Personal Information
+                      </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            First Name *
+                          </label>
+                          <input
+                            type="text"
+                            name="firstName"
+                            value={formData.firstName}
+                            onChange={handleInputChange}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
+                              errors.firstName ? 'border-red-300' : 'border-gray-300'
+                            }`}
+                          />
+                          {errors.firstName && (
+                            <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Last Name *
+                          </label>
+                          <input
+                            type="text"
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleInputChange}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
+                              errors.lastName ? 'border-red-300' : 'border-gray-300'
+                            }`}
+                          />
+                          {errors.lastName && (
+                            <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* User Info Display - Show for authenticated users */}
+                  {user && (
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <FiUser className="h-5 w-5 mr-2 text-golden-600" />
+                        Your Information
+                      </h3>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium text-green-800">Name:</span>
+                            <span className="ml-2 text-green-700">{user.firstName} {user.lastName}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-green-800">Email:</span>
+                            <span className="ml-2 text-green-700">{user.email}</span>
+                          </div>
+                          {user.phone && (
+                            <div>
+                              <span className="font-medium text-green-800">Phone:</span>
+                              <span className="ml-2 text-green-700">{user.phone}</span>
+                            </div>
+                          )}
+                          {user.companyName && (
+                            <div>
+                              <span className="font-medium text-green-800">Company:</span>
+                              <span className="ml-2 text-green-700">{user.companyName}</span>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-green-600 text-xs mt-2">
+                          ✓ Your information will be automatically used for this request
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contact Information - Only show for guest users */}
+                  {!user && (
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <FiMail className="h-5 w-5 mr-2 text-golden-600" />
+                        Contact Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Email Address *
+                          </label>
+                          <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
+                              errors.email ? 'border-red-300' : 'border-gray-300'
+                            }`}
+                          />
+                          {errors.email && (
+                            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Phone Number *
+                          </label>
+                          <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleInputChange}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
+                              errors.phone ? 'border-red-300' : 'border-gray-300'
+                            }`}
+                          />
+                          {errors.phone && (
+                            <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Company Information - Only show for guest users */}
+                  {!user && (
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <FiUser className="h-5 w-5 mr-2 text-golden-600" />
+                        Company Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Street Address
+                            Company Name *
                           </label>
+                          <input
+                            type="text"
+                            name="companyName"
+                            value={formData.companyName}
+                            onChange={handleInputChange}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
+                              errors.companyName ? 'border-red-300' : 'border-gray-300'
+                            }`}
+                          />
+                          {errors.companyName && (
+                            <p className="mt-1 text-sm text-red-600">{errors.companyName}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Company Type *
+                          </label>
+                          <select
+                            name="companyType"
+                            value={formData.companyType}
+                            onChange={handleInputChange}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
+                              errors.companyType ? 'border-red-300' : 'border-gray-300'
+                            }`}
+                          >
+                            <option value="">Select Type</option>
+                            <option value="Agriculture & Farming">Agriculture & Farming</option>
+                            <option value="Food & Beverage">Food & Beverage</option>
+                            <option value="Cosmetics & Beauty">Cosmetics & Beauty</option>
+                            <option value="Textiles & Fashion">Textiles & Fashion</option>
+                            <option value="Healthcare & Pharmaceuticals">Healthcare & Pharmaceuticals</option>
+                            <option value="Retail & Wholesale">Retail & Wholesale</option>
+                            <option value="Manufacturing">Manufacturing</option>
+                            <option value="Export/Import">Export/Import</option>
+                            <option value="Other">Other</option>
+                          </select>
+                          {errors.companyType && (
+                            <p className="mt-1 text-sm text-red-600">{errors.companyType}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Your Role *
+                        </label>
+                        <select
+                          name="companyRole"
+                          value={formData.companyRole}
+                          onChange={handleInputChange}
+                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-golden-500 focus:border-golden-500 ${
+                            errors.companyRole ? 'border-red-300' : 'border-gray-300'
+                          }`}
+                        >
+                          <option value="">Select Role</option>
+                          <option value="Owner/CEO">Owner/CEO</option>
+                          <option value="Manager/Director">Manager/Director</option>
+                          <option value="Purchasing Manager">Purchasing Manager</option>
+                          <option value="Procurement Officer">Procurement Officer</option>
+                          <option value="Sales Manager">Sales Manager</option>
+                          <option value="Marketing Manager">Marketing Manager</option>
+                          <option value="Operations Manager">Operations Manager</option>
+                          <option value="Business Development">Business Development</option>
+                          <option value="Consultant">Consultant</option>
+                          <option value="Employee">Employee</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        {errors.companyRole && (
+                          <p className="mt-1 text-sm text-red-600">{errors.companyRole}</p>
+                        )}
+                      </div>
+                      
+                      {/* Company Address */}
+                      <div className="mt-6">
+                        <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                          <FiMapPin className="h-4 w-4 mr-2 text-golden-600" />
+                          Company Address
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Street Address
+                            </label>
                           <input
                             type="text"
                             name="companyAddress.street"
@@ -535,6 +590,7 @@ const RequestForm = () => {
                       </div>
                     </div>
                   </div>
+                  )}
 
                   {/* Notes */}
                   <div>

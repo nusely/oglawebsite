@@ -5,8 +5,8 @@ import { FiArrowRight, FiStar } from 'react-icons/fi';
 import BrandProductCard from '../../components/BrandProductCard';
 
 const LaVeedaProductShowcase = ({ products, brandColors }) => {
-  // Filter La Veeda products (brandId: '1')
-  const laVeedaProducts = products.filter(product => product.brandId === '1');
+  // Filter La Veeda products (brandId: 1)
+  const laVeedaProducts = products.filter(product => product.brandId == 1);
 
   if (laVeedaProducts.length === 0) {
     return null;
@@ -32,7 +32,7 @@ const LaVeedaProductShowcase = ({ products, brandColors }) => {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            Discover our premium collection of natural skincare products, crafted with the finest shea butter from Lawra, Northern Ghana. Each product is designed to nourish, protect, and enhance your natural beauty.
+            Discover our premium quality collection of unrefined shea butter, shea butter products, African black soaps, etc., from Ghana. Each product is designed to nourish, protect, and enhance your natural beauty.
           </motion.p>
         </div>
 

@@ -42,7 +42,7 @@ const About = () => {
         {/* Background Image */}
         <div className="absolute inset-0">
           <img
-            src="/images/hero/laveeda -truck-Branding.webp"
+            src="https://res.cloudinary.com/dpznya3mz/image/upload/v1756651306/ogla/static/hero/laveeda%20-truck-Branding.webp/laveeda_-truck-Branding.jpg"
             alt="La Veeda Truck Branding"
             className="w-full h-full object-cover"
           />

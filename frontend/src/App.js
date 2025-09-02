@@ -1,9 +1,9 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { HelmetProvider } from 'react-helmet-async';
-import { motion, AnimatePresence } from 'framer-motion';
 
-// Context providers
+// Context Providers
 import { AuthProvider } from './contexts/AuthContext';
 import { RequestBasketProvider } from './contexts/RequestBasketContext';
 import { ProductProvider } from './hooks/useProducts';
@@ -12,11 +12,12 @@ import { ProductProvider } from './hooks/useProducts';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import RequestBasket from './components/RequestBasket';
-import ErrorBoundary from './components/ErrorBoundary';
 import Breadcrumbs from './components/Breadcrumbs';
-import { PageLoadingSkeleton } from './components/LoadingSkeleton';
+import ErrorBoundary from './components/ErrorBoundary';
 import PerformanceMonitor from './components/PerformanceMonitor';
 import ScrollToTop from './components/ScrollToTop';
+import { PageLoadingSkeleton } from './components/LoadingSkeleton';
+import ProtectedCustomerRoute from './components/ProtectedCustomerRoute';
 
 // Styles
 import './styles/globals.css';
@@ -27,19 +28,40 @@ const Products = lazy(() => import('./pages/Products'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
+const Stories = lazy(() => import('./pages/Stories'));
+const StoryDetail = lazy(() => import('./pages/StoryDetail'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const VerifyEmailPending = lazy(() => import('./pages/VerifyEmailPending'));
 const RequestForm = lazy(() => import('./pages/RequestForm'));
 const RequestConfirmation = lazy(() => import('./pages/RequestConfirmation'));
 const MyRequests = lazy(() => import('./pages/MyRequests'));
+const Profile = lazy(() => import('./pages/Profile'));
 const RequestBasketPage = lazy(() => import('./pages/RequestBasketPage'));
 const BrandPage = lazy(() => import('./pages/BrandPage'));
-const Stories = lazy(() => import('./pages/Stories'));
-const StoryDetail = lazy(() => import('./pages/StoryDetail'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
+// Admin routes
+const AdminRoutes = lazy(() => import('./admin/routes'));
+
+// Motion wrapper for pages
+const PageWrapper = ({ children }) => (
+  <div
+    style={{
+      opacity: 1,
+      transform: 'translateY(0px)',
+      transition: 'opacity 0.3s ease, transform 0.3s ease'
+    }}
+  >
+    {children}
+  </div>
+);
+
 function App() {
-  // Disable browser's automatic scroll restoration
+  // Restore scroll position on navigation
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
@@ -54,244 +76,239 @@ function App() {
             <PerformanceMonitor />
             <ScrollToTop />
             <div className="App w-full overflow-x-hidden">
-            <Header />
-            <RequestBasket />
-            
-            <main className="w-full">
               <ErrorBoundary>
                 <Suspense fallback={<PageLoadingSkeleton />}>
                   <AnimatePresence mode="wait">
                     <Routes>
+                      {/* Admin Routes - Outside main layout */}
                       <Route 
-                        path="/" 
+                        path="/admin/*" 
                         element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Home />
-                          </motion.div>
+                          <Suspense fallback={<PageLoadingSkeleton />}>
+                            <AdminRoutes />
+                          </Suspense>
                         } 
                       />
                       
-                      <Route 
-                        path="/products" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Breadcrumbs />
-                            <Products />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/product/:slug" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Breadcrumbs />
-                            <ProductDetail />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/about" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Breadcrumbs />
-                            <About />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/contact" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Breadcrumbs />
-                            <Contact />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/stories" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Breadcrumbs />
-                            <Stories />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/stories/:slug" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Breadcrumbs />
-                            <StoryDetail />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/login" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Login />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/register" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Register />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/request-form" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Breadcrumbs />
-                            <RequestForm />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/request-confirmation" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <RequestConfirmation />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/my-requests" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Breadcrumbs />
-                            <MyRequests />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/request-basket" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Breadcrumbs />
-                            <RequestBasketPage />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      {/* Brand Pages */}
-                      <Route 
-                        path="/brand/:brandSlug" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Breadcrumbs />
-                            <BrandPage />
-                          </motion.div>
-                        } 
-                      />
-                      
-                      {/* 404 Route */}
-                      <Route 
-                        path="*" 
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <NotFound />
-                          </motion.div>
-                        } 
-                      />
+                      {/* Main Layout Routes */}
+                      <Route path="/*" element={
+                        <>
+                          <Header />
+                          <RequestBasket />
+                          <main className="w-full">
+                            <Routes>
+                              <Route 
+                                path="/" 
+                                element={
+                                  <PageWrapper>
+                                    <Home />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/products" 
+                                element={
+                                  <PageWrapper>
+                                    <Breadcrumbs />
+                                    <Products />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/product/:slug" 
+                                element={
+                                  <PageWrapper>
+                                    <Breadcrumbs />
+                                    <ProductDetail />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/about" 
+                                element={
+                                  <PageWrapper>
+                                    <Breadcrumbs />
+                                    <About />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/contact" 
+                                element={
+                                  <PageWrapper>
+                                    <Breadcrumbs />
+                                    <Contact />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/stories" 
+                                element={
+                                  <PageWrapper>
+                                    <Breadcrumbs />
+                                    <Stories />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/story/:slug" 
+                                element={
+                                  <PageWrapper>
+                                    <Breadcrumbs />
+                                    <StoryDetail />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/login" 
+                                element={
+                                  <PageWrapper>
+                                    <Login />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/register" 
+                                element={
+                                  <PageWrapper>
+                                    <Breadcrumbs />
+                                    <Register />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/forgot-password" 
+                                element={
+                                  <PageWrapper>
+                                    <ForgotPassword />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/reset-password" 
+                                element={
+                                  <PageWrapper>
+                                    <ResetPassword />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/verify-email" 
+                                element={
+                                  <PageWrapper>
+                                    <VerifyEmail />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/verify-email-pending" 
+                                element={
+                                  <PageWrapper>
+                                    <VerifyEmailPending />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/request-form" 
+                                element={
+                                  <ProtectedCustomerRoute>
+                                    <PageWrapper>
+                                      <Breadcrumbs />
+                                      <RequestForm />
+                                    </PageWrapper>
+                                  </ProtectedCustomerRoute>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/request-confirmation" 
+                                element={
+                                  <PageWrapper>
+                                    <RequestConfirmation />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/my-requests" 
+                                element={
+                                  <ProtectedCustomerRoute>
+                                    <PageWrapper>
+                                      <Breadcrumbs />
+                                      <MyRequests />
+                                    </PageWrapper>
+                                  </ProtectedCustomerRoute>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/profile" 
+                                element={
+                                  <ProtectedCustomerRoute>
+                                    <PageWrapper>
+                                      <Breadcrumbs />
+                                      <Profile />
+                                    </PageWrapper>
+                                  </ProtectedCustomerRoute>
+                                } 
+                              />
+                              
+                              <Route 
+                                path="/request-basket" 
+                                element={
+                                  <ProtectedCustomerRoute>
+                                    <PageWrapper>
+                                      <Breadcrumbs />
+                                      <RequestBasketPage />
+                                    </PageWrapper>
+                                  </ProtectedCustomerRoute>
+                                } 
+                              />
+                              
+                              {/* Brand Pages */}
+                              <Route 
+                                path="/brand/:brandSlug" 
+                                element={
+                                  <PageWrapper>
+                                    <Breadcrumbs />
+                                    <BrandPage />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              {/* 404 Route */}
+                              <Route 
+                                path="*" 
+                                element={
+                                  <PageWrapper>
+                                    <NotFound />
+                                  </PageWrapper>
+                                } 
+                              />
+                            </Routes>
+                          </main>
+                          <Footer />
+                        </>
+                      } />
                     </Routes>
                   </AnimatePresence>
                 </Suspense>
               </ErrorBoundary>
-            </main>
-            
-            <Footer />
-          </div>
-            </ProductProvider>
+            </div>
+          </ProductProvider>
         </RequestBasketProvider>
       </AuthProvider>
     </HelmetProvider>

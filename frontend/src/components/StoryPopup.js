@@ -2,66 +2,70 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiBookOpen, FiClock } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
+import api from '../services/api';
 
 const StoryPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [currentStory, setCurrentStory] = useState(null);
   const [hasBeenTapped, setHasBeenTapped] = useState(false);
+  const [stories, setStories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const timeoutRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
 
-  // Sample stories data (this would come from your stories page)
-  const stories = [
-    {
-      id: 1,
-      title: "Ogla Shea Butter Expands to International Markets",
-      excerpt: "We're excited to announce our expansion into European markets, bringing authentic Ghanaian shea butter to new customers worldwide.",
-      slug: "international-expansion"
-    },
-    {
-      id: 2,
-      title: "New Partnership with Ghana Shea Alliance",
-      excerpt: "Strategic collaboration with Ghana Shea Alliance to enhance quality standards and support local shea butter producers.",
-      slug: "ghana-shea-alliance-partnership"
-    },
-    {
-      id: 3,
-      title: "Sustainable Farming Practices in Our Supply Chain",
-      excerpt: "Discover how we're implementing eco-friendly farming methods to protect the environment while maintaining product quality.",
-      slug: "sustainable-farming-practices"
-    },
-    {
-      id: 4,
-      title: "AfriSmocks Collection Launch Success",
-      excerpt: "Our latest AfriSmocks collection has received overwhelming positive feedback from customers and fashion enthusiasts.",
-      slug: "afrismocks-launch-success"
-    },
-    {
-      id: 5,
-      title: "Supporting Local Artisans Through OgriBusiness",
-      excerpt: "How our OgriBusiness initiative is creating economic opportunities for local artisans and craftspeople.",
-      slug: "supporting-local-artisans"
-    },
-    {
-      id: 6,
-      title: "Quality Assurance: Behind the Scenes",
-      excerpt: "Take a look at our rigorous quality control processes that ensure every product meets our high standards.",
-      slug: "quality-assurance-behind-scenes"
+  // Fetch stories from API
+  const fetchStories = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/stories/popup-stories');
+      if (response.data.success) {
+        setStories(response.data.data);
+      } else {
+        console.warn('Failed to fetch stories, using fallback');
+        // Fallback to sample data if API fails
+        setStories([
+          {
+            id: 1,
+            title: "Welcome to Ogla Shea Butter",
+            excerpt: "Discover our premium African products and read the latest company news.",
+            slug: "welcome"
+          }
+        ]);
+      }
+    } catch (error) {
+      console.warn('Error fetching stories:', error);
+      // Fallback to sample data
+      setStories([
+        {
+          id: 1,
+          title: "Stay Updated with Our Latest News",
+          excerpt: "Check out our stories section for company updates and product announcements.",
+          slug: "latest-news"
+        }
+      ]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   // Get random story
   const getRandomStory = () => {
+    if (stories.length === 0) return null;
     const randomIndex = Math.floor(Math.random() * stories.length);
     return stories[randomIndex];
   };
 
   // Show popup with random story
   const showPopup = () => {
-    setCurrentStory(getRandomStory());
-    setIsVisible(true);
-    setIsExpanded(true);
+    if (loading || stories.length === 0) return;
+    
+    const randomStory = getRandomStory();
+    if (randomStory) {
+      setCurrentStory(randomStory);
+      setIsVisible(true);
+      setIsExpanded(true);
+    }
   };
 
   // Hide popup
@@ -87,7 +91,7 @@ const StoryPopup = () => {
   // Handle popup click (navigate to specific story)
   const handlePopupClick = () => {
     if (currentStory) {
-      window.location.href = `/stories/${currentStory.slug}`;
+      window.location.href = `/story/${currentStory.slug}`;
     }
     setHasBeenTapped(true);
   };
@@ -100,24 +104,21 @@ const StoryPopup = () => {
     
     scrollTimeoutRef.current = setTimeout(() => {
       const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-      if (scrollPercent > 50 && isExpanded) {
+      // Only hide if user has scrolled past 70% or if they've scrolled significantly fast
+      if (scrollPercent > 70 && isExpanded) {
         hidePopup();
       }
-    }, 100);
+    }, 200); // Increased debounce time
   };
 
   useEffect(() => {
+    // Fetch stories from API
+    fetchStories();
+
     // Check if user has ever tapped (stored in localStorage)
     const hasTapped = localStorage.getItem('storyPopupTapped');
     if (hasTapped) {
       setHasBeenTapped(true);
-    }
-
-    // Show popup after 10 seconds if never tapped
-    if (!hasTapped) {
-      timeoutRef.current = setTimeout(() => {
-        showPopup();
-      }, 10000); // 10 seconds
     }
 
     // Add scroll listener
@@ -134,24 +135,37 @@ const StoryPopup = () => {
     };
   }, []);
 
-  // Auto-hide popup after 8 seconds
+  // Setup auto-show timer after stories are loaded
+  useEffect(() => {
+    if (!loading && stories.length > 0) {
+      const hasTapped = localStorage.getItem('storyPopupTapped');
+      // Show popup after 15 seconds if never tapped and stories are loaded
+      if (!hasTapped) {
+        timeoutRef.current = setTimeout(() => {
+          showPopup();
+        }, 15000); // 15 seconds (increased from 10)
+      }
+    }
+  }, [loading, stories]);
+
+  // Auto-hide popup after 12 seconds (increased for better reading time)
   useEffect(() => {
     if (isExpanded) {
       const autoHideTimeout = setTimeout(() => {
         hidePopup();
-      }, 8000);
+      }, 12000);
 
       return () => clearTimeout(autoHideTimeout);
     }
   }, [isExpanded]);
 
-  // Auto-hide icon after 8 seconds if user has tapped
+  // Keep icon visible longer after user interaction
   useEffect(() => {
     if (hasBeenTapped && !isVisible) {
       const iconHideTimeout = setTimeout(() => {
         setHasBeenTapped(false);
         localStorage.removeItem('storyPopupTapped');
-      }, 8000);
+      }, 30000); // 30 seconds instead of 8
 
       return () => clearTimeout(iconHideTimeout);
     }
@@ -164,14 +178,20 @@ const StoryPopup = () => {
     }
   }, [hasBeenTapped]);
 
-  if (!isVisible && hasBeenTapped) {
-    return (
-      <motion.div
-        initial={{ x: 100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="fixed right-0 top-1/2 transform -translate-y-1/2 z-50"
-      >
+                       if (!isVisible && hasBeenTapped) {
+       return (
+         <motion.div
+           initial={{ x: 100, opacity: 0 }}
+           animate={{ x: 0, opacity: 1 }}
+           transition={{ duration: 0.3 }}
+           style={{ 
+             position: 'fixed', 
+             top: '50vh', 
+             right: '0px', 
+             transform: 'translateY(-50%)',
+             zIndex: 99999
+           }}
+         >
         <button
           onClick={handleIconClick}
           className="bg-golden-600 text-white p-3 shadow-lg hover:bg-golden-700 transition-colors duration-300"
@@ -185,13 +205,19 @@ const StoryPopup = () => {
   return (
     <>
              {/* Floating Icon (when popup is not visible) */}
-       {!isVisible && (
-         <motion.div
-           initial={{ x: 100, opacity: 0 }}
-           animate={{ x: 0, opacity: 1 }}
-           transition={{ duration: 0.3 }}
-           className="fixed right-0 top-1/2 transform -translate-y-1/2 z-50"
-         >
+                                                               {!isVisible && (
+            <motion.div
+              initial={{ x: 100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              style={{ 
+                position: 'fixed', 
+                top: '50vh', 
+                right: '0px', 
+                transform: 'translateY(-50%)',
+                zIndex: 99999
+              }}
+            >
            <button
              onClick={handleIconClick}
              className="bg-golden-600 text-white p-3 shadow-lg hover:bg-golden-700 transition-colors duration-300"
@@ -204,14 +230,26 @@ const StoryPopup = () => {
              {/* Popup Overlay */}
        <AnimatePresence>
          {isVisible && (
-           <motion.div
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             exit={{ opacity: 0 }}
-             transition={{ duration: 0.3 }}
-             className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-             onClick={hidePopup}
-           >
+                       <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                zIndex: 9998,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '16px'
+              }}
+              onClick={hidePopup}
+            >
              {/* Popup Content */}
              <motion.div
                initial={{ scale: 0.8, opacity: 0 }}

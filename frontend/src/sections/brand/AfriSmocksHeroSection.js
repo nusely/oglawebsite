@@ -14,7 +14,7 @@ const AfriSmocksHeroSection = ({
   customLogo = null
 }) => {
   const backgroundImage = customBackground || 
-    `linear-gradient(rgba(30, 64, 175, 0.4), rgba(59, 130, 246, 0.4)), url('/images/afrismocks_card.webp')`;
+    `linear-gradient(rgba(30, 64, 175, 0.4), rgba(59, 130, 246, 0.4)), url('https://res.cloudinary.com/dpznya3mz/image/upload/v1756651258/ogla/static/afrismocks_card.webp/afrismocks_card.jpg')`;
 
   return (
     <section className="relative h-screen overflow-hidden">

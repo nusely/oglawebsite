@@ -3,16 +3,19 @@ import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useProducts } from '../hooks/useProducts';
 import { useRequestBasket } from '../contexts/RequestBasketContext';
+import { useAuth } from '../contexts/AuthContext';
 import Loading from '../components/Loading';
 import ProductImageGallery from '../components/ProductImageGallery';
 import ProductReviews from '../components/ProductReviews';
 import RelatedProducts from '../components/RelatedProducts';
 import { ProductCardSkeleton } from '../components/LoadingSkeleton';
+import { getImageUrl } from '../utils/imageUtils';
 
 const ProductDetail = () => {
   const { slug } = useParams();
   const { getProductBySlug, getBrandBySlug, products, brands } = useProducts();
   const { addToRequest, isInRequest } = useRequestBasket();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('description');
   
   const product = getProductBySlug(slug);
@@ -32,6 +35,7 @@ const ProductDetail = () => {
 
   const getProductPrice = (product) => {
     if (product.pricing?.unitPrice) return product.pricing.unitPrice;
+    if (product.pricing?.base) return product.pricing.base;
     if (product.price) return product.price;
     return 0;
   };
@@ -105,21 +109,23 @@ const ProductDetail = () => {
                 </div>
               )}
               
-                             {/* Add to Request Button */}
-               <button 
-                 className={`w-full text-lg py-3 font-semibold rounded-lg transition-all duration-300 mb-6 ${
-                   isInRequest(product._id)
-                     ? 'text-white hover:bg-golden-700'
-                     : 'btn btn-primary'
-                 }`}
-                 style={isInRequest(product._id) ? { backgroundColor: '#8B6914' } : {}}
-                 onClick={() => addToRequest(product)}
-               >
-                 {isInRequest(product._id) ? '✓ Added to Request' : 'Add to Request'}
-               </button>
+              {/* Add to Request Button - Hidden for admins */}
+              {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
+                <button 
+                  className={`w-full text-lg py-3 font-semibold rounded-lg transition-all duration-300 mb-6 ${
+                    isInRequest(product._id)
+                      ? 'text-white hover:bg-golden-700'
+                      : 'btn btn-primary'
+                  }`}
+                  style={isInRequest(product._id) ? { backgroundColor: '#8B6914' } : {}}
+                  onClick={() => addToRequest(product)}
+                >
+                  {isInRequest(product._id) ? '✓ Added to Request' : 'Add to Request'}
+                </button>
+              )}
 
               {/* Bulk Pricing Info */}
-              {product.pricing.bulkPricing && product.pricing.bulkPricing.length > 0 && (
+              {product.pricing?.bulkPricing && product.pricing.bulkPricing.length > 0 && (
                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
                   <h4 className="font-semibold text-gray-900 mb-2">Bulk Pricing Available</h4>
                   <div className="space-y-1 text-sm">
@@ -181,7 +187,7 @@ const ProductDetail = () => {
                       <div key={index} className="mb-4">
                         <p className="text-gray-600 mb-2 font-medium">{variant.name}:</p>
                         <div className="flex flex-wrap gap-2">
-                          {variant.options.map((option, optionIndex) => (
+                          {variant.options && variant.options.map((option, optionIndex) => (
                             <span
                               key={optionIndex}
                               className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
@@ -205,7 +211,7 @@ const ProductDetail = () => {
               >
                 {product.specifications && Object.keys(product.specifications).length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-                    {Object.entries(product.specifications).map(([key, value]) => (
+                    {Object.entries(product.specifications || {}).map(([key, value]) => (
                       <div key={key} className="flex justify-between py-2 border-b border-gray-100">
                         <span className="text-gray-600 capitalize font-medium">{key}:</span>
                         <span className="text-gray-900">{value}</span>
@@ -225,8 +231,7 @@ const ProductDetail = () => {
                 transition={{ duration: 0.3 }}
               >
                 <ProductReviews
-                  reviews={product.reviews || []}
-                  productId={product._id}
+                  productId={product.id}
                   onAddReview={handleAddReview}
                 />
               </motion.div>

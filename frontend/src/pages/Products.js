@@ -36,6 +36,20 @@ const Products = () => {
     setFilters(newFilters);
   };
 
+  const handleRemoveFilter = (filterType, filterValue) => {
+    const newFilters = { ...filters };
+    
+    if (filterType === 'brand') {
+      newFilters.brand = '';
+    } else if (filterType === 'category') {
+      newFilters.category = '';
+    } else if (filterType === 'price') {
+      newFilters.priceRange = { min: 0, max: 10000 };
+    }
+    
+    setFilters(newFilters);
+  };
+
   const handleClearFilters = () => {
     setFilters({
       brand: '',
@@ -50,6 +64,8 @@ const Products = () => {
   const filteredProducts = searchProducts(searchQuery, {
     brandId: filters.brand,
     category: filters.category,
+    priceRange: filters.priceRange,
+    inStock: filters.inStock,
     featured: filters.featured
   });
 
@@ -136,7 +152,7 @@ const Products = () => {
                 <div className="mb-6">
                   <FilterTags 
                     filters={filters}
-                    onClearFilter={handleFilterChange}
+                    onRemoveFilter={handleRemoveFilter}
                     onClearAll={handleClearFilters}
                   />
                 </div>

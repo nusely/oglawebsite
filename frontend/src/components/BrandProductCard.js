@@ -3,17 +3,20 @@ import { Link } from 'react-router-dom';
 import { FiShoppingBag, FiPlus, FiCheck } from 'react-icons/fi';
 import { useProducts } from '../hooks/useProducts';
 import { useRequestBasket } from '../contexts/RequestBasketContext';
+import { getProductImage } from '../utils/imageUtils';
+import { useAuth } from '../contexts/AuthContext';
 
 const BrandProductCard = ({ product, brandColors }) => {
   const { getBrandBySlug } = useProducts();
   const brand = getBrandBySlug(product.brandId);
   const { addToRequest, isInRequest, getItemQuantity } = useRequestBasket();
   const [isAddingToRequest, setIsAddingToRequest] = useState(false);
+  const { user } = useAuth();
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-GH', {
       style: 'currency',
-      currency: product.pricing.currency || 'GHS'
+      currency: 'GHS'
     }).format(price);
   };
 
@@ -53,8 +56,8 @@ const BrandProductCard = ({ product, brandColors }) => {
       {/* Product Image */}
       <div className="relative overflow-hidden aspect-square">
         <img
-          src={product.images[0] || '/images/placeholder-product.jpg'}
-          alt={product.name}
+          src={getProductImage(product)}
+          alt={product.name || 'Product Image'}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         
@@ -109,9 +112,9 @@ const BrandProductCard = ({ product, brandColors }) => {
         {brand && (
           <p 
             className="text-xs font-medium mb-1"
-            style={{ color: brandColors?.primary || brand.brandColors.primary }}
+            style={{ color: brandColors?.primary || brand.brandColors?.primary }}
           >
-            {brand.name}
+            {brand.name || 'Brand'}
           </p>
         )}
         
@@ -126,22 +129,22 @@ const BrandProductCard = ({ product, brandColors }) => {
               e.target.style.color = '#111827'; // text-gray-900
             }}
           >
-            {product.name}
+            {product.name || 'Product Name'}
           </h3>
         </Link>
         
         {/* Short Description - Fixed height */}
         <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2 h-8 sm:h-10 flex items-center">
-          {product.shortDescription}
+          {product.shortDescription || product.description || ''}
         </p>
         
         {/* Price */}
         <div className="flex items-center justify-between mb-3 mt-auto">
           <div>
             <span className="text-base sm:text-lg font-bold text-gray-900">
-              {formatPrice(product.pricing.unitPrice)}
+              {formatPrice(product.price || product.pricing?.base || 0)}
             </span>
-            {product.pricing.bulkPricing && product.pricing.bulkPricing.length > 0 && (
+            {product.pricing?.bulk && (
               <p className="text-xs text-gray-500">
                 Bulk pricing available
               </p>
@@ -150,7 +153,7 @@ const BrandProductCard = ({ product, brandColors }) => {
         </div>
         
         {/* Variants */}
-        {product.variants && product.variants.length > 0 && (
+        {product.variants && product.variants.length > 0 && product.variants[0]?.options && (
           <div className="mb-3">
             <p className="text-xs text-gray-500 mb-1">Available in:</p>
             <div className="flex flex-wrap gap-1">
@@ -189,31 +192,34 @@ const BrandProductCard = ({ product, brandColors }) => {
           >
             View Details
           </Link>
-          <button
-            onClick={handleAddToRequest}
-            disabled={isAddingToRequest}
-            className="flex-1 btn text-center text-xs sm:text-sm py-1.5 sm:py-2 text-white transition-all duration-200"
-            style={{ 
-              backgroundColor: brandColors?.primary || brand?.brandColors?.primary || '#b5a033'
-            }}
-          >
-            {isAddingToRequest ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-1 sm:mr-2"></div>
-                <span className="text-xs sm:text-sm">Adding...</span>
-              </div>
-            ) : isProductInRequest ? (
-              <div className="flex items-center justify-center">
-                <FiCheck className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="text-xs sm:text-sm">In Request ({requestQuantity})</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center">
-                <FiPlus className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="text-xs sm:text-sm">Add to Request</span>
-              </div>
-            )}
-          </button>
+          {/* Add to Request Button - Hidden for admins */}
+          {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
+            <button
+              onClick={handleAddToRequest}
+              disabled={isAddingToRequest}
+              className="flex-1 btn text-center text-xs sm:text-sm py-1.5 sm:py-2 text-white transition-all duration-200"
+              style={{ 
+                backgroundColor: brandColors?.primary || brand?.brandColors?.primary || '#b5a033'
+              }}
+            >
+              {isAddingToRequest ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-1 sm:mr-2"></div>
+                  <span className="text-xs sm:text-sm">Adding...</span>
+                </div>
+              ) : isProductInRequest ? (
+                <div className="flex items-center justify-center">
+                  <FiCheck className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm">In Request ({requestQuantity})</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <FiPlus className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm">Add to Request</span>
+                </div>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

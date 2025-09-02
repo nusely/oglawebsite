@@ -7,7 +7,7 @@ const OgriBusinessFarmingSection = ({
   title = "Sustainable Farming Excellence",
   description = "Every OgriBusiness product is sourced from local farmers in Northern Ghana who practice sustainable farming methods. We connect these hardworking farmers to global markets, ensuring fair prices and quality standards.",
   location = "Northern Ghana Farmlands",
-  image = "/images/brands/ogribusiness/a1-woman-farm-ghana.jpg",
+  image = "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651298/ogla/static/brands/ogribusiness/a1-woman-farm-ghana.jpg/a1-woman-farm-ghana.jpg",
   ctaButton = {
     text: "Learn About Our Farmers",
     to: "/products",

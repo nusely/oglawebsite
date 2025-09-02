@@ -1,15 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiStar, FiUser, FiCalendar, FiThumbsUp } from 'react-icons/fi';
+import { useAuth } from '../contexts/AuthContext';
 
-const ProductReviews = ({ reviews = [], productId, onAddReview }) => {
+const ProductReviews = ({ productId, onAddReview }) => {
+  const { user } = useAuth();
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [newReview, setNewReview] = useState({
     rating: 5,
     title: '',
     comment: '',
-    name: ''
+    name: user ? '' : ''
   });
+
+  // Fetch reviews function
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Fetching reviews for productId:', productId);
+      const url = `/api/reviews/product/${productId}`;
+      console.log('Fetching from URL:', url);
+      
+      const response = await fetch(url);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('No reviews found for this product');
+        } else if (response.status >= 500) {
+          throw new Error('Server error - please try again later');
+        } else {
+          throw new Error(`Failed to fetch reviews (${response.status})`);
+        }
+      }
+      
+      const data = await response.json();
+      console.log('Reviews data received:', data);
+      setReviews(data);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching reviews:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch reviews when component mounts or productId changes
+  useEffect(() => {
+    if (productId && productId > 0) {
+      console.log('Valid productId, fetching reviews...');
+      fetchReviews();
+    } else {
+      console.log('Invalid productId:', productId);
+      setError('Invalid product ID');
+      setLoading(false);
+    }
+  }, [productId]);
 
   // Calculate average rating
   const averageRating = reviews.length > 0 
@@ -24,18 +77,66 @@ const ProductReviews = ({ reviews = [], productId, onAddReview }) => {
     1: reviews.filter(r => r.rating === 1).length
   };
 
-  const handleSubmitReview = (e) => {
+  const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (onAddReview) {
-      onAddReview({
-        ...newReview,
-        productId,
-        date: new Date().toISOString(),
-        helpful: 0
+    
+    try {
+      setSubmitting(true);
+      
+      const reviewData = {
+        productId: parseInt(productId),
+        rating: newReview.rating,
+        title: newReview.title,
+        comment: newReview.comment,
+        ...(user ? {} : { name: newReview.name })
+      };
+
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(user && { 'Authorization': `Bearer ${localStorage.getItem('ogla-token')}` })
+        },
+        body: JSON.stringify(reviewData)
       });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to submit review';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (parseError) {
+          if (response.status === 400) {
+            errorMessage = 'Invalid review data - please check your input';
+          } else if (response.status === 401) {
+            errorMessage = 'Please log in to submit a review';
+          } else if (response.status >= 500) {
+            errorMessage = 'Server error - please try again later';
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Reset form and close
+        setNewReview({ rating: 5, title: '', comment: '', name: user ? '' : '' });
+        setShowReviewForm(false);
+        
+        // Refresh the reviews list to show the new review
+        fetchReviews();
+        
+        // Show success message
+        alert('Review submitted successfully!');
+      }
+      
+    } catch (err) {
+      setError(err.message);
+      console.error('Error submitting review:', err);
+    } finally {
+      setSubmitting(false);
     }
-    setNewReview({ rating: 5, title: '', comment: '', name: '' });
-    setShowReviewForm(false);
   };
 
   const StarRating = ({ rating, size = 'md', interactive = false, onRatingChange }) => {
@@ -65,8 +166,35 @@ const ProductReviews = ({ reviews = [], productId, onAddReview }) => {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border-b border-gray-200 pb-4">
+                <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
+
       {/* Reviews Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -142,18 +270,20 @@ const ProductReviews = ({ reviews = [], productId, onAddReview }) => {
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Name
-              </label>
-              <input
-                type="text"
-                value={newReview.name}
-                onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
-                required
-              />
-            </div>
+            {!user && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Name
+                </label>
+                <input
+                  type="text"
+                  value={newReview.name}
+                  onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
+                  required
+                />
+              </div>
+            )}
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -185,13 +315,15 @@ const ProductReviews = ({ reviews = [], productId, onAddReview }) => {
               <button
                 type="submit"
                 className="btn btn-primary"
+                disabled={submitting}
               >
-                Submit Review
+                {submitting ? 'Submitting...' : 'Submit Review'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowReviewForm(false)}
                 className="btn btn-secondary"
+                disabled={submitting}
               >
                 Cancel
               </button>
@@ -209,7 +341,7 @@ const ProductReviews = ({ reviews = [], productId, onAddReview }) => {
         ) : (
           reviews.map((review, index) => (
             <motion.div
-              key={index}
+              key={review.id || index}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}

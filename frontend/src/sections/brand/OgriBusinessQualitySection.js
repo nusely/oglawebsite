@@ -1,16 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiStar, FiUsers, FiFeather } from 'react-icons/fi';
 import { useRequestBasket } from '../../contexts/RequestBasketContext';
+import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const OgriBusinessQualitySection = ({ 
   title = "Premium Agricultural Excellence",
   description = "Experience the finest quality agricultural products from Northern Ghana. Our farmers use sustainable farming practices to deliver premium beans and farm produce that meet international standards.",
-  featuredProduct = null,
+  featuredProduct: propFeaturedProduct = null,
   customerStats = { count: "5,000+", label: "Happy Customers" },
   brandColors = { primary: '#2E7D32', secondary: '#4CAF50', accent: '#8BC34A' }
 }) => {
   const { addToRequest, isInRequest } = useRequestBasket();
+  const [featuredProduct, setFeaturedProduct] = useState(propFeaturedProduct);
+  const [loading, setLoading] = useState(!propFeaturedProduct);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchFeaturedProduct = async () => {
+      try {
+        const response = await api.get('/brand-featured-products/brand/ogribusiness');
+        if (response.data.success && response.data.data.featuredProduct) {
+          setFeaturedProduct(response.data.data.featuredProduct);
+        }
+      } catch (error) {
+        console.error('Error fetching featured product:', error);
+        // Fallback to prop if API fails
+        setFeaturedProduct(propFeaturedProduct);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!propFeaturedProduct) {
+      fetchFeaturedProduct();
+    }
+  }, [propFeaturedProduct]);
   return (
     <section className="relative py-24 bg-[#2E7D32] text-white">
       <div className="container">
@@ -46,7 +72,12 @@ const OgriBusinessQualitySection = ({
             className="relative"
           >
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8">
-              {featuredProduct ? (
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                  <p className="text-white/60">Loading featured product...</p>
+                </div>
+              ) : featuredProduct ? (
                 <>
                   <div className="relative h-80 overflow-hidden rounded-xl mb-6">
                     <img
@@ -65,16 +96,19 @@ const OgriBusinessQualitySection = ({
                       ))}
                     </div>
                   </div>
-                                                        <button 
-                     className={`w-full px-6 py-3 rounded-full transition-all duration-300 font-semibold ${
-                       isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`)
-                         ? 'bg-green-500 text-white hover:bg-green-600'
-                         : 'bg-[#ffe86b] text-[#2E7D32] hover:bg-white'
-                     }`}
-                     onClick={() => addToRequest(featuredProduct)}
-                   >
-                     {isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`) ? '✓ Added to Request' : 'Add to Request'}
-                   </button>
+                  {/* Add to Request Button - Hidden for admins */}
+                  {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
+                    <button 
+                      className={`w-full px-6 py-3 rounded-full transition-all duration-300 font-semibold ${
+                        isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`)
+                          ? 'bg-green-500 text-white hover:bg-green-600'
+                          : 'bg-[#FFFFFF] text-[#2E7D32] hover:bg-green-50'
+                      }`}
+                      onClick={() => addToRequest(featuredProduct)}
+                    >
+                      {isInRequest(featuredProduct._id || `featured_${featuredProduct.name.replace(/\s+/g, '_').toLowerCase()}`) ? '✓ Added to Request' : 'Add to Request'}
+                    </button>
+                  )}
                 </>
               ) : (
                 <div className="text-center py-12">

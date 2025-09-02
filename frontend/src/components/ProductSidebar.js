@@ -20,12 +20,14 @@ const ProductSidebar = ({
   });
 
   // Get unique categories from products
-  const categories = [...new Set(products.map(product => product.category))].filter(Boolean);
+  const categories = [...new Set(products.map(product => product.categoryName || product.category))].filter(Boolean);
 
   // Get price range from products
-  const prices = products.map(product => product.price).filter(price => price > 0);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
+  const prices = products.map(product => {
+    return product.price || product.pricing?.base || product.pricing?.unitPrice || 0;
+  }).filter(price => price > 0);
+  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+  const maxPrice = prices.length > 0 ? Math.max(...prices) : 10000;
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -137,12 +139,12 @@ const ProductSidebar = ({
             <span className="text-sm text-gray-700">All Brands</span>
           </label>
           {brands.map((brand) => (
-            <label key={brand._id} className="flex items-center">
+            <label key={brand._id || brand.id} className="flex items-center">
               <input
                 type="radio"
                 name="brand"
-                value={brand._id}
-                checked={filters.brand === brand._id}
+                value={brand._id || brand.id}
+                checked={filters.brand == (brand._id || brand.id)}
                 onChange={(e) => handleFilterChange('brand', e.target.value)}
                 className="mr-3 text-golden-600 focus:ring-golden-500"
               />
@@ -199,7 +201,7 @@ const ProductSidebar = ({
               <input
                 type="number"
                 placeholder={minPrice.toString()}
-                value={filters.priceRange.min || ''}
+                value={filters.priceRange.min === minPrice ? '' : filters.priceRange.min}
                 onChange={(e) => handleFilterChange('priceRange', { 
                   min: parseFloat(e.target.value) || minPrice 
                 })}
@@ -211,7 +213,7 @@ const ProductSidebar = ({
               <input
                 type="number"
                 placeholder={maxPrice.toString()}
-                value={filters.priceRange.max || ''}
+                value={filters.priceRange.max === maxPrice ? '' : filters.priceRange.max}
                 onChange={(e) => handleFilterChange('priceRange', { 
                   max: parseFloat(e.target.value) || maxPrice 
                 })}

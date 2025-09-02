@@ -2,13 +2,22 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const BrandCard = ({ brand }) => {
+  // Safety check for brand object
+  if (!brand || !brand.slug) {
+    return (
+      <div className="group relative overflow-hidden rounded-2xl shadow-lg bg-gray-200 h-64 flex items-center justify-center">
+        <p className="text-gray-500">Brand not available</p>
+      </div>
+    );
+  }
+
   // Get brand-specific images, icons, and colors
   const getBrandAssets = (brandSlug) => {
     switch (brandSlug) {
       case 'la-veeda':
         return {
-          backgroundImage: '/images/la-veeda-card.webp',
-          icon: '/images/la-veeda-icon.png',
+          backgroundImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651322/ogla/static/la-veeda-card.webp/la-veeda-card.png',
+          icon: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651327/ogla/static/la-veeda-icon.png/la-veeda-icon.png',
           overlayColor: '#1b4332', // Dark green for La Veeda
           brandColors: {
             primary: '#1b4332',    // Dark green
@@ -18,8 +27,8 @@ const BrandCard = ({ brand }) => {
         };
       case 'afrismocks':
         return {
-          backgroundImage: '/images/afrismocks_card.webp',
-          icon: '/images/afrismocks-icon.png',
+          backgroundImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651258/ogla/static/afrismocks_card.webp/afrismocks_card.jpg',
+          icon: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651255/ogla/static/afrismocks-icon.png/afrismocks-icon.png',
           overlayColor: '#0623ad', // Blue for AfriSmocks
           brandColors: {
             primary: '#0623ad',    // Blue
@@ -29,8 +38,8 @@ const BrandCard = ({ brand }) => {
         };
       case 'ogribusiness':
         return {
-          backgroundImage: '/images/ogribusiness_card.webp',
-          icon: '/images/ogribusiness-icon.png',
+          backgroundImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651338/ogla/static/ogribusiness_card.webp/ogribusiness_card.png',
+          icon: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651337/ogla/static/ogribusiness-icon.png/ogribusiness-icon.png',
           overlayColor: '#005e57', // Teal for OgriBusiness
           brandColors: {
             primary: '#005e57',    // Teal
@@ -42,8 +51,12 @@ const BrandCard = ({ brand }) => {
         return {
           backgroundImage: brand.bannerImage || '/images/laveeda-truck-Branding.webp',
           icon: brand.logo || '/images/brand-logo-placeholder.png',
-          overlayColor: brand.brandColors.primary,
-          brandColors: brand.brandColors
+          overlayColor: brand.brandColors?.primary || '#1b4332',
+          brandColors: brand.brandColors || {
+            primary: '#1b4332',
+            secondary: '#e8d77c',
+            accent: '#ffffff'
+          }
         };
     }
   };
@@ -92,15 +105,15 @@ const BrandCard = ({ brand }) => {
         <div className="flex space-x-2 mb-4">
           <div 
             className="w-4 h-4 rounded-full border-2 border-white"
-            style={{ backgroundColor: brandAssets.brandColors.primary }}
+            style={{ backgroundColor: brandAssets.brandColors?.primary || '#1b4332' }}
           />
           <div 
             className="w-4 h-4 rounded-full border-2 border-white"
-            style={{ backgroundColor: brandAssets.brandColors.secondary }}
+            style={{ backgroundColor: brandAssets.brandColors?.secondary || '#e8d77c' }}
           />
           <div 
             className="w-4 h-4 rounded-full border-2 border-white"
-            style={{ backgroundColor: brandAssets.brandColors.accent }}
+            style={{ backgroundColor: brandAssets.brandColors?.accent || '#ffffff' }}
           />
         </div>
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiGrid, FiList, FiChevronDown, FiSearch } from 'react-icons/fi';
 import ProductCard from './ProductCard';
+import { useAuth } from '../contexts/AuthContext';
 
 const SearchResults = ({ 
   products, 
@@ -11,6 +12,7 @@ const SearchResults = ({
   viewMode = 'grid',
   onViewModeChange 
 }) => {
+  const { user } = useAuth();
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -219,12 +221,15 @@ const SearchResults = ({
                             Bulk pricing available
                           </p>
                         )}
-                        <button
-                          onClick={() => onAddToRequest(product)}
-                          className="bg-golden-600 text-white px-4 py-2 rounded-lg hover:bg-golden-700 transition-colors font-medium"
-                        >
-                          Add to Request
-                        </button>
+                        {/* Add to Request Button - Hidden for admins */}
+                        {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
+                          <button
+                            onClick={() => onAddToRequest(product)}
+                            className="bg-golden-600 text-white px-4 py-2 rounded-lg hover:bg-golden-700 transition-colors font-medium"
+                          >
+                            Add to Request
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -292,12 +297,15 @@ const SearchResults = ({
                             </div>
                             
                             {/* Add to Request Button */}
-                            <button
-                              onClick={() => onAddToRequest(product)}
-                              className="bg-golden-600 text-white px-6 py-2 rounded-lg hover:bg-golden-700 transition-colors font-medium"
-                            >
-                              Add to Request
-                            </button>
+                            {/* Add to Request Button - Hidden for admins */}
+                            {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
+                              <button
+                                onClick={() => onAddToRequest(product)}
+                                className="bg-golden-600 text-white px-6 py-2 rounded-lg hover:bg-golden-700 transition-colors font-medium"
+                              >
+                                Add to Request
+                              </button>
+                            )}
                           </div>
                           
                           {/* Bulk Pricing Info */}

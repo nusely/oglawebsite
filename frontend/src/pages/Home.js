@@ -17,14 +17,14 @@ const Home = () => {
   // Hero images array
   const heroImages = [
     {
-      src: '/images/hero/Image_hero1.jpg',
+      src: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651303/ogla/static/hero/Image_hero1.jpg/Image_hero1.jpg',
       alt: 'Premium Shea Butter Products',
-      title: 'Premium Products from',
+      title: 'Unrefined Shea Butter from',
       subtitle: 'Northern Ghana',
-      description: 'Discover authentic Ghanaian craftsmanship through our three distinct brands: natural cosmetics, traditional clothing, and premium agricultural products.'
+      description: 'Discover authentic Ghanaian craftsmanship through our three distinct brands: quality shea butter, traditional clothing, and premium agricultural products.'
     },
     {
-      src: '/images/hero/Image_hero2.webp',
+      src: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651305/ogla/static/hero/Image_hero2.webp/Image_hero2.jpg',
       alt: 'Authentic Ghanaian Craftsmanship',
       title: 'Authentic Craftsmanship from',
       subtitle: 'Ghana',
@@ -119,11 +119,11 @@ const Home = () => {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.5 }}
                   >
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
+                    <h1 className="text-4xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
                       {heroImages[currentImageIndex].title}{' '}
                       <span className="text-golden-300">{heroImages[currentImageIndex].subtitle}</span>
                     </h1>
-                    <p className="text-base sm:text-lg lg:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl">
+                    <p className="text-lg sm:text-lg lg:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl">
                       {heroImages[currentImageIndex].description}
                     </p>
                   </motion.div>
@@ -267,7 +267,7 @@ const Home = () => {
                 </motion.div>
               ))
             ) : (
-              brands?.map((brand, index) => (
+              (Array.isArray(brands) ? brands : [])?.map((brand, index) => (
                 <motion.div
                   key={brand._id}
                   initial={{ opacity: 0, y: 30 }}
@@ -316,7 +316,7 @@ const Home = () => {
                 </motion.div>
               ))
             ) : (
-              featuredProducts?.map((product, index) => (
+              (Array.isArray(featuredProducts) ? featuredProducts : [])?.map((product, index) => (
                 <motion.div
                   key={product._id}
                   initial={{ opacity: 0, y: 30 }}
@@ -331,7 +331,7 @@ const Home = () => {
           </div>
 
           {/* View All Products Button */}
-          {featuredProducts?.length > 0 && (
+          {Array.isArray(featuredProducts) && featuredProducts?.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -362,7 +362,7 @@ const Home = () => {
               transition={{ duration: 0.8 }}
             >
               <img
-                src="/images/IMG_7717_jpg.webp"
+                src="https://res.cloudinary.com/dpznya3mz/image/upload/v1756651316/ogla/static/IMG_7717_jpg.webp/IMG_7717_jpg.jpg"
                 alt="Lawra, Northern Ghana"
                 className="rounded-2xl shadow-lg"
               />
@@ -447,31 +447,31 @@ const Home = () => {
                     {[
                       // Original testimonials
                       {
-                        image: "/images/brands/afrismocks/Image_testimonial3.webp",
+                        image: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651266/ogla/static/brands/afrismocks/Image_testimonial3.webp/Image_testimonial3.jpg",
                         name: "Amoureth Johnson",
                         title: "Fashion Designer, Accra",
                         text: "The quality of AfriSmocks products is exceptional. Each piece tells a story of our rich cultural heritage while maintaining modern comfort and style."
                       },
                       {
-                        image: "/images/brands/ogribusiness/Image_testimonial2.webp",
+                        image: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651300/ogla/static/brands/ogribusiness/Image_testimonial2.webp/Image_testimonial2.jpg",
                         name: "Kwame Asante",
                         title: "Agricultural Exporter",
                         text: "OgriBusiness has transformed our agricultural exports. The premium quality beans and sustainable farming practices set new standards in the industry."
                       },
                       {
-                        image: "/images/brands/afrismocks/Image_testimonial4.webp",
+                        image: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651268/ogla/static/brands/afrismocks/Image_testimonial4.webp/Image_testimonial4.jpg",
                         name: "Sarah Mensah",
                         title: "Beauty Entrepreneur",
                         text: "La Veeda's natural skincare products have revolutionized my beauty routine. The authentic Ghanaian ingredients deliver results beyond expectations."
                       },
                       {
-                        image: "/images/brands/laveeda/Image_testimonial6.webp",
+                        image: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651276/ogla/static/brands/laveeda/Image_testimonial6.webp/Image_testimonial6.jpg",
                         name: "Michael Osei",
                         title: "Restaurant Owner",
                         text: "The premium quality of OgriBusiness agricultural products has elevated our menu. Our customers can taste the difference in every dish."
                       },
                       {
-                        image: "/images/brands/laveeda/Image_testimonial5.webp",
+                        image: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651273/ogla/static/brands/laveeda/Image_testimonial5.webp/Image_testimonial5.jpg",
                         name: "Grace Addo",
                         title: "Cultural Ambassador",
                         text: "AfriSmocks represents the perfect blend of tradition and modernity. Each garment carries the spirit of Ghanaian culture with contemporary elegance."
@@ -564,13 +564,13 @@ const Home = () => {
                       text: "The quality of AfriSmocks products is exceptional. Each piece tells a story of our rich cultural heritage while maintaining modern comfort and style."
                     },
                     {
-                      image: "/images/brands/ogribusiness/Image_testimonial2.webp",
+                      image: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651300/ogla/static/brands/ogribusiness/Image_testimonial2.webp/Image_testimonial2.jpg",
                       name: "Kwame Asante",
                       title: "Agricultural Exporter",
                       text: "OgriBusiness has transformed our agricultural exports. The premium quality beans and sustainable farming practices set new standards in the industry."
                     },
                     {
-                      image: "/images/brands/afrismocks/Image_testimonial3.webp",
+                      image: "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651266/ogla/static/brands/afrismocks/Image_testimonial3.webp/Image_testimonial3.jpg",
                       name: "Sarah Mensah",
                       title: "Beauty Entrepreneur",
                       text: "La Veeda's natural skincare products have revolutionized my beauty routine. The authentic Ghanaian ingredients deliver results beyond expectations."

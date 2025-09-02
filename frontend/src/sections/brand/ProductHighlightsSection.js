@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FiStar } from 'react-icons/fi';
 import { useRequestBasket } from '../../contexts/RequestBasketContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const ProductHighlightsSection = ({ 
   products = [], 
@@ -12,6 +13,7 @@ const ProductHighlightsSection = ({
 }) => {
   const displayProducts = products.slice(0, maxProducts);
   const { addToRequest, isInRequest } = useRequestBasket();
+  const { user } = useAuth();
 
   return (
     <section className="relative py-24 bg-gradient-to-b from-white to-gray-50">
@@ -72,32 +74,35 @@ const ProductHighlightsSection = ({
                   </span>
                   <span className="text-sm text-gray-500">1,234 reviews</span>
                 </div>
-                                 <button 
-                   className={`w-full px-6 py-3 rounded-full transition-all duration-300 font-semibold ${
-                     isInRequest(product._id)
-                       ? 'bg-green-500 text-white hover:bg-green-600'
-                       : ''
-                   }`}
-                   style={!isInRequest(product._id) ? {
-                     backgroundColor: brandColors.primary,
-                     color: 'white'
-                   } : {}}
-                   onMouseEnter={(e) => {
-                     if (!isInRequest(product._id)) {
-                       e.target.style.backgroundColor = brandColors.secondary;
-                       e.target.style.color = brandColors.primary;
-                     }
-                   }}
-                   onMouseLeave={(e) => {
-                     if (!isInRequest(product._id)) {
-                       e.target.style.backgroundColor = brandColors.primary;
-                       e.target.style.color = 'white';
-                     }
-                   }}
-                   onClick={() => addToRequest(product)}
-                 >
-                   {isInRequest(product._id) ? '✓ Added to Request' : 'Add to Request'}
-                 </button>
+                {/* Add to Request Button - Hidden for admins */}
+                {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
+                  <button 
+                    className={`w-full px-6 py-3 rounded-full transition-all duration-300 font-semibold ${
+                      isInRequest(product._id)
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : ''
+                    }`}
+                    style={!isInRequest(product._id) ? {
+                      backgroundColor: brandColors.primary,
+                      color: 'white'
+                    } : {}}
+                    onMouseEnter={(e) => {
+                      if (!isInRequest(product._id)) {
+                        e.target.style.backgroundColor = brandColors.secondary;
+                        e.target.style.color = brandColors.primary;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isInRequest(product._id)) {
+                        e.target.style.backgroundColor = brandColors.primary;
+                        e.target.style.color = 'white';
+                      }
+                    }}
+                    onClick={() => addToRequest(product)}
+                  >
+                    {isInRequest(product._id) ? '✓ Added to Request' : 'Add to Request'}
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}

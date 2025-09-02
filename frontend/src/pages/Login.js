@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowLeft } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,9 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
   
   const { login, isAuthenticated, error, clearError } = useAuth();
   const navigate = useNavigate();
@@ -34,7 +38,7 @@ const Login = () => {
     return () => {
       clearError();
     };
-  }, [clearError]);
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -83,7 +87,34 @@ const Login = () => {
     const result = await login(formData.email, formData.password);
     
     if (result.success) {
-      // Navigation will be handled by useEffect
+      // Check if user is admin/super_admin and redirect to admin dashboard
+      if (result.user && (result.user.role === 'admin' || result.user.role === 'super_admin')) {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        // Navigation will be handled by useEffect for regular users
+      }
+    } else if (result.error && result.error.includes('verify your email')) {
+      // Redirect to verification pending page
+      navigate('/verify-email-pending', { 
+        state: { 
+          email: formData.email,
+          fromRegistration: false
+        }
+      });
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    setResendMessage('');
+    
+    try {
+      await api.post('/auth/resend-verification', { email: formData.email });
+      setResendMessage('Verification email sent! Please check your inbox.');
+    } catch (error) {
+      setResendMessage(error.response?.data?.message || 'Failed to send verification email.');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -132,6 +163,21 @@ const Login = () => {
                 className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md"
               >
                 {error}
+                {showResendVerification && (
+                  <div className="mt-3 pt-3 border-t border-red-300">
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resendLoading}
+                      className="text-sm underline text-red-600 hover:text-red-800 disabled:opacity-50"
+                    >
+                      {resendLoading ? 'Sending...' : 'Resend verification email'}
+                    </button>
+                    {resendMessage && (
+                      <p className="mt-2 text-sm text-green-600">{resendMessage}</p>
+                    )}
+                  </div>
+                )}
               </motion.div>
             )}
 

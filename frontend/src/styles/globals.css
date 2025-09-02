@@ -46,13 +46,60 @@ header {
 main {
   flex: 1;
   position: relative;
-  margin-top: 64px !important; /* Height of header */
+  padding-top: 64px !important; /* Height of header */
+  margin-top: 0 !important;
+}
+
+/* Override for admin layout */
+.admin-content main {
   padding-top: 0 !important;
 }
 
 /* Ensure RequestBasket doesn't interfere */
 .RequestBasket {
   z-index: 9998 !important;
+}
+
+/* Admin layout specific styles */
+.admin-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  margin-top: 5%;
+}
+
+.admin-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 40;
+  width: 256px; /* 16rem = 256px */
+}
+
+
+
+.admin-content {
+  margin-left: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 100vh;
+  padding-left: 0;
+}
+
+.admin-content main {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+}
+
+@media (min-width: 1024px) {
+  .admin-content {
+    margin-left: 20px; /* 16rem = 256px */
+  }
 }
 
 /* Custom CSS Variables */

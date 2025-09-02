@@ -14,7 +14,7 @@ const OgriBusinessHeroSection = ({
   customLogo = null
 }) => {
   const backgroundImage = customBackground || 
-    `linear-gradient(rgba(46, 125, 50, 0.4), rgba(76, 175, 80, 0.4)), url('/images/ogribusiness_card.webp')`;
+    `linear-gradient(rgba(46, 125, 50, 0.4), rgba(76, 175, 80, 0.4)), url('https://res.cloudinary.com/dpznya3mz/image/upload/v1756651338/ogla/static/ogribusiness_card.webp/ogribusiness_card.png')`;
 
   return (
     <section className="relative h-screen overflow-hidden">

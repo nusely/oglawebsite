@@ -5,6 +5,14 @@ import { Link } from 'react-router-dom';
 import ProductCarousel from '../../components/ProductCarousel';
 
 const LegacyBrandPage = ({ brand, brandInfo, brandProducts, brandSlug }) => {
+  // Safety checks for required props
+  if (!brand) {
+    return <div className="min-h-screen flex items-center justify-center">Brand not found</div>;
+  }
+
+  if (!brandInfo) {
+    return <div className="min-h-screen flex items-center justify-center">Brand information not available</div>;
+  }
   const getBrandClass = (brandSlug) => {
     switch (brandSlug) {
       case 'la-veeda':
@@ -55,26 +63,26 @@ const LegacyBrandPage = ({ brand, brandInfo, brandProducts, brandSlug }) => {
             </div>
 
             <h1 className="text-4xl lg:text-6xl font-bold mb-4">{brand.name}</h1>
-            <p className="text-xl lg:text-2xl mb-6 opacity-90">{brandInfo.subtitle}</p>
+            <p className="text-xl lg:text-2xl mb-6 opacity-90">{brandInfo.subtitle || ''}</p>
             
             {/* Brand Colors */}
             <div className="flex justify-center space-x-3 mb-8">
               <div 
                 className="w-6 h-6 rounded-full border-2 border-white"
-                style={{ backgroundColor: brand.brandColors.primary }}
+                style={{ backgroundColor: brand.brandColors?.primary || '#1b4332' }}
               />
               <div 
                 className="w-6 h-6 rounded-full border-2 border-white"
-                style={{ backgroundColor: brand.brandColors.secondary }}
+                style={{ backgroundColor: brand.brandColors?.secondary || '#e8d77c' }}
               />
               <div 
                 className="w-6 h-6 rounded-full border-2 border-white"
-                style={{ backgroundColor: brand.brandColors.accent }}
+                style={{ backgroundColor: brand.brandColors?.accent || '#ffffff' }}
               />
             </div>
 
             <p className="text-lg max-w-3xl mx-auto opacity-90">
-              {brandInfo.description}
+              {brandInfo.description || ''}
             </p>
           </motion.div>
         </div>
@@ -94,7 +102,7 @@ const LegacyBrandPage = ({ brand, brandInfo, brandProducts, brandSlug }) => {
             </h2>
             
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-              {brandInfo.features.map((feature, index) => (
+              {(brandInfo.features || []).map((feature, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 30 }}
@@ -104,11 +112,11 @@ const LegacyBrandPage = ({ brand, brandInfo, brandProducts, brandSlug }) => {
                 >
                   <div 
                     className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: brand.brandColors.primary + '20' }}
+                    style={{ backgroundColor: (brand.brandColors?.primary || '#1b4332') + '20' }}
                   >
                     <FiStar 
                       size={24}
-                      style={{ color: brand.brandColors.primary }}
+                      style={{ color: brand.brandColors?.primary || '#1b4332' }}
                     />
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2">{feature}</h3>
@@ -130,7 +138,7 @@ const LegacyBrandPage = ({ brand, brandInfo, brandProducts, brandSlug }) => {
           >
             <h2 
               className="text-3xl font-bold mb-4"
-              style={{ color: brand.brandColors.primary }}
+              style={{ color: brand.brandColors?.primary || '#1b4332' }}
             >
               Featured {brand.name} Products
             </h2>
@@ -157,7 +165,7 @@ const LegacyBrandPage = ({ brand, brandInfo, brandProducts, brandSlug }) => {
           >
             <h2 
               className="text-3xl font-bold mb-4"
-              style={{ color: brand.brandColors.primary }}
+              style={{ color: brand.brandColors?.primary || '#1b4332' }}
             >
               All {brand.name} Products
             </h2>
@@ -196,7 +204,7 @@ const LegacyBrandPage = ({ brand, brandInfo, brandProducts, brandSlug }) => {
             >
               <h2 
                 className="text-3xl font-bold mb-6"
-                style={{ color: brand.brandColors.primary }}
+                style={{ color: brand.brandColors?.primary || '#1b4332' }}
               >
                 From Lawra, Northern Ghana
               </h2>
@@ -218,7 +226,7 @@ const LegacyBrandPage = ({ brand, brandInfo, brandProducts, brandSlug }) => {
       {/* CTA Section */}
       <section 
         className="py-16 text-center text-white"
-        style={{ backgroundColor: brand.brandColors.primary }}
+        style={{ backgroundColor: brand.brandColors?.primary || '#1b4332' }}
       >
         <div className="container">
           <motion.div

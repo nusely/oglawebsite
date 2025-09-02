@@ -90,21 +90,23 @@ export const mockData = {
         secondary: '#e8d77c',
         accent: '#ffffff'
       },
-      designStyle: 'Clean, elegant, with cosmetic-focused photography, inclusive male/female models'
+      designStyle: 'Clean, elegant, with cosmetic-focused photography, inclusive male/female models',
+      website: 'https://oglasheabutter.com/brand/la-veeda'
     },
     {
       _id: '2',
       name: 'AfriSmocks',
       slug: 'afrismocks',
       description: 'Authentic Ghanaian smocks, African prints, and kente cloth.',
-      logo: '/images/brands/afrismocks-logo.png',
+      logo: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651270/ogla/static/brands/afrismocks-logo.png/afrismocks-logo.png',
       bannerImage: '/images/brands/afrismocks-banner.jpg',
       brandColors: {
         primary: '#1E40AF',
         secondary: '#3B82F6',
         accent: '#FFFFFF'
       },
-      designStyle: 'Cultural, stylish, bold colors with a blend of traditional and modern aesthetics'
+      designStyle: 'Cultural, stylish, bold colors with a blend of traditional and modern aesthetics',
+      website: 'https://oglasheabutter.com/brand/afrismocks'
     },
     {
       _id: '3',
@@ -118,7 +120,8 @@ export const mockData = {
         secondary: '#4CAF50',
         accent: '#8BC34A'
       },
-      designStyle: 'Earthy tones, farm/nature imagery to reflect large-scale production'
+      designStyle: 'Earthy tones, farm/nature imagery to reflect large-scale production',
+      website: 'https://oglasheabutter.com/brand/ogribusiness'
     }
   ],
   
@@ -132,9 +135,9 @@ export const mockData = {
       description: '100% pure, unrefined shea butter sourced from Lawra, Northern Ghana.',
       shortDescription: 'Natural moisturizer for all skin types',
       images: [
-        '/images/brands/laveeda_cat/BlackSoap_Gel.webp',
-        '/images/brands/laveeda_cat/25Kg_unrefined_shea.webp',
-        '/images/brands/laveeda_cat/la_veeda_250ml_shea.webp'
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651294/ogla/static/brands/laveeda_cat/BlackSoap_Gel.webp/BlackSoap_Gel.jpg',
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651293/ogla/static/brands/laveeda_cat/25Kg_unrefined_shea.webp/25Kg_unrefined_shea.jpg',
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651296/ogla/static/brands/laveeda_cat/la_veeda_250ml_shea.webp/la_veeda_250ml_shea.jpg'
       ],
       specifications: {
         weight: '500g',
@@ -200,9 +203,9 @@ export const mockData = {
       description: 'Premium 250ml unrefined shea butter in convenient packaging for daily use.',
       shortDescription: 'Natural moisturizer for all skin types',
       images: [
-        '/images/brands/laveeda_cat/la_veeda_250ml_shea.webp',
-        '/images/brands/laveeda_cat/BlackSoap_Gel.webp',
-        '/images/brands/laveeda_cat/25Kg_unrefined_shea.webp'
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651296/ogla/static/brands/laveeda_cat/la_veeda_250ml_shea.webp/la_veeda_250ml_shea.jpg',
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651294/ogla/static/brands/laveeda_cat/BlackSoap_Gel.webp/BlackSoap_Gel.jpg',
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651293/ogla/static/brands/laveeda_cat/25Kg_unrefined_shea.webp/25Kg_unrefined_shea.jpg'
       ],
       specifications: {
         weight: '250ml',
@@ -259,9 +262,9 @@ export const mockData = {
       description: 'Authentic Ghanaian men\'s smock made from handwoven cotton.',
       shortDescription: 'Authentic Ghanaian men\'s smock',
       images: [
-        '/images/brands/afrismock_cat/Kente_afrismock.webp',
-        '/images/brands/afrismocks/Image_testimonial3.webp',
-        '/images/brands/afrismocks/Image_testimonial4.webp'
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651271/ogla/static/brands/afrismock_cat/Kente_afrismock.webp/Kente_afrismock.jpg',
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651266/ogla/static/brands/afrismocks/Image_testimonial3.webp/Image_testimonial3.jpg',
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651268/ogla/static/brands/afrismocks/Image_testimonial4.webp/Image_testimonial4.jpg'
       ],
       specifications: {
         material: 'Handwoven Cotton',
@@ -320,9 +323,9 @@ export const mockData = {
       description: 'High-quality white beans sourced from Northern Ghana.',
       shortDescription: 'Premium white beans from Northern Ghana',
       images: [
-        '/images/brands/ogribusiness_cat/5kg_Ogri_Beans.webp',
-        '/images/brands/ogribusiness/Image_testimonial1.webp',
-        '/images/brands/ogribusiness/Image_testimonial2.webp'
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651301/ogla/static/brands/ogribusiness_cat/5kg_Ogri_Beans.webp/5kg_Ogri_Beans.jpg',
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651299/ogla/static/brands/ogribusiness/Image_testimonial1.webp/Image_testimonial1.jpg',
+        'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651300/ogla/static/brands/ogribusiness/Image_testimonial2.webp/Image_testimonial2.jpg'
       ],
       specifications: {
         weight: '50kg',

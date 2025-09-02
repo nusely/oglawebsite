@@ -7,7 +7,7 @@ const AfriSmocksCraftsmanshipSection = ({
   title = "Traditional Weaving Excellence",
   description = "Every AfriSmocks piece is crafted using traditional weaving techniques passed down through generations. Our artisans in Northern Ghana create authentic Kente patterns and traditional smocks that celebrate Ghanaian cultural heritage.",
   location = "Northern Ghana Weaving Centers",
-  image = "/images/brands/afrismocks/image-907-754x424.png",
+  image = "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651265/ogla/static/brands/afrismocks/image-907-754x424.png/image-907-754x424.jpg",
 
      brandColors = { primary: '#1E40AF', secondary: '#3B82F6', accent: '#FFFFFF' }
 }) => {

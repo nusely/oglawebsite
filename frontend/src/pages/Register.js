@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiUser, FiPhone, FiArrowLeft, FiBriefcase, FiHome } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiUser, FiPhone, FiArrowLeft, FiBriefcase, FiHome, FiArrowRight, FiCheck } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 
 // Company type options
@@ -38,7 +38,8 @@ const COMPANY_ROLES = [
   'Other'
 ];
 
-const Register = () => {
+const RegisterMultiStep = () => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -61,13 +62,8 @@ const Register = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      // If user came from request form, redirect back there
-      if (location.state?.prefillData) {
-        navigate('/request-form', { replace: true });
-      } else {
-        const from = location.state?.from?.pathname || '/';
-        navigate(from, { replace: true });
-      }
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, location]);
 
@@ -76,12 +72,12 @@ const Register = () => {
     return () => {
       clearError();
     };
-  }, [clearError]);
+  }, []);
 
-  // Handle pre-filled data from request form
+  // Pre-fill form data if provided
   useEffect(() => {
-    const prefillData = location.state?.prefillData;
-    if (prefillData) {
+    if (location.state?.prefillData) {
+      const prefillData = location.state.prefillData;
       setFormData(prev => ({
         ...prev,
         firstName: prefillData.firstName || '',
@@ -95,7 +91,7 @@ const Register = () => {
     }
   }, [location.state]);
 
-  const validateForm = () => {
+  const validateStep1 = () => {
     const newErrors = {};
 
     // First name validation
@@ -119,28 +115,9 @@ const Register = () => {
       newErrors.email = 'Email is invalid';
     }
 
-    // Phone validation (optional)
-    if (formData.phone && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(formData.phone)) {
-      newErrors.phone = 'Phone number is invalid';
-    }
-
-    // Company name validation
-    if (!formData.companyName.trim()) {
-      newErrors.companyName = 'Company name is required';
-    } else if (formData.companyName.trim().length < 2) {
-      newErrors.companyName = 'Company name must be at least 2 characters';
-    } else if (formData.companyName.trim().length > 100) {
-      newErrors.companyName = 'Company name cannot exceed 100 characters';
-    }
-
-    // Company type validation
-    if (!formData.companyType) {
-      newErrors.companyType = 'Company type is required';
-    }
-
-    // Company role validation
-    if (!formData.companyRole) {
-      newErrors.companyRole = 'Company role is required';
+    // Phone validation (optional) - International format
+    if (formData.phone && !/^\+[1-9]\d{6,14}$/.test(formData.phone)) {
+      newErrors.phone = 'Phone number must be in international format (e.g., +233204543372)';
     }
 
     // Password validation
@@ -163,6 +140,32 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const validateStep2 = () => {
+    const newErrors = {};
+
+    // Company name validation
+    if (!formData.companyName.trim()) {
+      newErrors.companyName = 'Company name is required';
+    } else if (formData.companyName.trim().length < 2) {
+      newErrors.companyName = 'Company name must be at least 2 characters';
+    } else if (formData.companyName.trim().length > 100) {
+      newErrors.companyName = 'Company name cannot exceed 100 characters';
+    }
+
+    // Company type validation
+    if (!formData.companyType) {
+      newErrors.companyType = 'Company type is required';
+    }
+
+    // Company role validation
+    if (!formData.companyRole) {
+      newErrors.companyRole = 'Company role is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -179,10 +182,22 @@ const Register = () => {
     }
   };
 
+  const handleNextStep = () => {
+    if (currentStep === 1 && validateStep1()) {
+      setCurrentStep(2);
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep === 2) {
+      setCurrentStep(1);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateStep2()) {
       return;
     }
 
@@ -200,7 +215,17 @@ const Register = () => {
     const result = await register(userData);
     
     if (result.success) {
-      // Navigation will be handled by useEffect
+      if (result.requiresVerification) {
+        // Redirect to email verification pending page
+        navigate('/verify-email-pending', { 
+          state: { 
+            email: userData.email,
+            fromRegistration: true
+          }
+        });
+      } else {
+        // Navigation will be handled by useEffect for already verified accounts
+      }
     }
   };
 
@@ -211,6 +236,468 @@ const Register = () => {
   const toggleConfirmPasswordVisibility = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
+
+  const renderStepIndicator = () => (
+    <div className="flex items-center justify-center mb-8">
+      <div className="flex items-center space-x-4">
+        {/* Step 1 */}
+        <div className="flex items-center">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+            currentStep >= 1 ? 'bg-golden-600 text-white' : 'bg-gray-200 text-gray-600'
+          }`}>
+            {currentStep > 1 ? <FiCheck className="w-5 h-5" /> : '1'}
+          </div>
+          <span className="ml-2 text-sm font-medium text-gray-700">Personal Info</span>
+        </div>
+        
+        {/* Connector */}
+        <div className={`w-12 h-1 ${currentStep >= 2 ? 'bg-golden-600' : 'bg-gray-200'}`} />
+        
+        {/* Step 2 */}
+        <div className="flex items-center">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+            currentStep >= 2 ? 'bg-golden-600 text-white' : 'bg-gray-200 text-gray-600'
+          }`}>
+            2
+          </div>
+          <span className="ml-2 text-sm font-medium text-gray-700">Company Info</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderStep1 = () => (
+    <motion.div
+      key="step1"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      className="space-y-6"
+    >
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
+        <p className="text-sm text-gray-600">Tell us about yourself</p>
+      </div>
+
+      {/* Name Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* First Name */}
+        <div>
+          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+            First name
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiUser className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              id="firstName"
+              name="firstName"
+              type="text"
+              autoComplete="given-name"
+              required
+              value={formData.firstName}
+              onChange={handleInputChange}
+              className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
+                errors.firstName ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="John"
+            />
+          </div>
+          {errors.firstName && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-1 text-sm text-red-600"
+            >
+              {errors.firstName}
+            </motion.p>
+          )}
+        </div>
+
+        {/* Last Name */}
+        <div>
+          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+            Last name
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiUser className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              id="lastName"
+              name="lastName"
+              type="text"
+              autoComplete="family-name"
+              required
+              value={formData.lastName}
+              onChange={handleInputChange}
+              className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
+                errors.lastName ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Doe"
+            />
+          </div>
+          {errors.lastName && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-1 text-sm text-red-600"
+            >
+              {errors.lastName}
+            </motion.p>
+          )}
+        </div>
+      </div>
+
+      {/* Email Field */}
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+          Email address
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FiMail className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={formData.email}
+            onChange={handleInputChange}
+            className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
+              errors.email ? 'border-red-300' : 'border-gray-300'
+            }`}
+            placeholder="john@example.com"
+          />
+        </div>
+        {errors.email && (
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-1 text-sm text-red-600"
+          >
+            {errors.email}
+          </motion.p>
+        )}
+      </div>
+
+      {/* Phone Field */}
+      <div>
+        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+          Phone number (optional)
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FiPhone className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            value={formData.phone}
+            onChange={handleInputChange}
+            className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
+              errors.phone ? 'border-red-300' : 'border-gray-300'
+            }`}
+            placeholder="+233204543372 (international format)"
+          />
+        </div>
+        {errors.phone && (
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-1 text-sm text-red-600"
+          >
+            {errors.phone}
+          </motion.p>
+        )}
+        <p className="mt-1 text-xs text-gray-500">
+          Include country code (e.g., +233 for Ghana, +1 for USA, +44 for UK)
+        </p>
+      </div>
+
+      {/* Password Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Password */}
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            Password
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiLock className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              required
+              value={formData.password}
+              onChange={handleInputChange}
+              className={`appearance-none relative block w-full pl-10 pr-10 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
+                errors.password ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Enter password"
+            />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              onClick={togglePasswordVisibility}
+            >
+              {showPassword ? (
+                <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              ) : (
+                <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              )}
+            </button>
+          </div>
+          {errors.password && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-1 text-sm text-red-600"
+            >
+              {errors.password}
+            </motion.p>
+          )}
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+            Confirm password
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiLock className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type={showConfirmPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              required
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              className={`appearance-none relative block w-full pl-10 pr-10 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
+                errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Confirm password"
+            />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              onClick={toggleConfirmPasswordVisibility}
+            >
+              {showConfirmPassword ? (
+                <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              ) : (
+                <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              )}
+            </button>
+          </div>
+          {errors.confirmPassword && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-1 text-sm text-red-600"
+            >
+              {errors.confirmPassword}
+            </motion.p>
+          )}
+        </div>
+      </div>
+
+      {/* Next Button */}
+      <div>
+        <button
+          type="button"
+          onClick={handleNextStep}
+          className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-golden-600 hover:bg-golden-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-golden-500 transition-colors duration-200"
+        >
+          <span className="flex items-center">
+            Next: Company Information
+            <FiArrowRight className="ml-2 h-4 w-4" />
+          </span>
+        </button>
+      </div>
+    </motion.div>
+  );
+
+  const renderStep2 = () => (
+    <motion.div
+      key="step2"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="space-y-6"
+    >
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-medium text-gray-900">Company Information</h3>
+        <p className="text-sm text-gray-600">Tell us about your business</p>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md"
+        >
+          {error}
+        </motion.div>
+      )}
+
+      {/* Company Name */}
+      <div>
+        <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
+          Company name
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FiBriefcase className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            id="companyName"
+            name="companyName"
+            type="text"
+            autoComplete="organization"
+            required
+            value={formData.companyName}
+            onChange={handleInputChange}
+            className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
+              errors.companyName ? 'border-red-300' : 'border-gray-300'
+            }`}
+            placeholder="Your Company Ltd."
+          />
+        </div>
+        {errors.companyName && (
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-1 text-sm text-red-600"
+          >
+            {errors.companyName}
+          </motion.p>
+        )}
+      </div>
+
+      {/* Company Type */}
+      <div>
+        <label htmlFor="companyType" className="block text-sm font-medium text-gray-700 mb-2">
+          Company type
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+            <FiHome className="h-5 w-5 text-gray-400" />
+          </div>
+          <select
+            id="companyType"
+            name="companyType"
+            required
+            value={formData.companyType}
+            onChange={handleInputChange}
+            className={`appearance-none relative block w-full pl-10 pr-10 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
+              errors.companyType ? 'border-red-300' : 'border-gray-300'
+            }`}
+          >
+            <option value="">Select company type</option>
+            {COMPANY_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+        {errors.companyType && (
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-1 text-sm text-red-600"
+          >
+            {errors.companyType}
+          </motion.p>
+        )}
+      </div>
+
+      {/* Company Role */}
+      <div>
+        <label htmlFor="companyRole" className="block text-sm font-medium text-gray-700 mb-2">
+          Your role in the company
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+            <FiUser className="h-5 w-5 text-gray-400" />
+          </div>
+          <select
+            id="companyRole"
+            name="companyRole"
+            required
+            value={formData.companyRole}
+            onChange={handleInputChange}
+            className={`appearance-none relative block w-full pl-10 pr-10 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
+              errors.companyRole ? 'border-red-300' : 'border-gray-300'
+            }`}
+          >
+            <option value="">Select your role</option>
+            {COMPANY_ROLES.map((role) => (
+              <option key={role} value={role}>
+                {role}
+              </option>
+            ))}
+          </select>
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+        {errors.companyRole && (
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-1 text-sm text-red-600"
+          >
+            {errors.companyRole}
+          </motion.p>
+        )}
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="flex space-x-4">
+        <button
+          type="button"
+          onClick={handlePrevStep}
+          className="flex-1 flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-golden-500 transition-colors duration-200"
+        >
+          <span className="flex items-center">
+            <FiArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </span>
+        </button>
+        
+        <button
+          type="submit"
+          className="flex-1 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-golden-600 hover:bg-golden-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-golden-500 transition-colors duration-200"
+        >
+          <span className="flex items-center">
+            <FiCheck className="mr-2 h-4 w-4" />
+            Create Account
+          </span>
+        </button>
+      </div>
+    </motion.div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -232,7 +719,7 @@ const Register = () => {
             Create your account
           </h2>
           <p className="text-gray-600">
-            Join us to start shopping
+            Join Ogla Shea Butter & General Trading
           </p>
         </motion.div>
       </div>
@@ -244,423 +731,13 @@ const Register = () => {
           transition={{ delay: 0.1 }}
           className="bg-white py-8 px-4 shadow-lg rounded-lg sm:px-10"
         >
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Pre-filled Data Notification */}
-            {location.state?.prefillData && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md"
-              >
-                <div className="flex items-center">
-                  <FiUser className="h-5 w-5 mr-2" />
-                  <span className="text-sm font-medium">
-                    Your information has been pre-filled from your request form. Please complete your registration.
-                  </span>
-                </div>
-              </motion.div>
-            )}
+          {/* Step Indicator */}
+          {renderStepIndicator()}
 
-            {/* Error Message */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md"
-              >
-                {error}
-              </motion.div>
-            )}
-
-            {/* Name Fields */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {/* First Name */}
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                  First name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiUser className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    autoComplete="given-name"
-                    required
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
-                      errors.firstName ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="First name"
-                  />
-                </div>
-                {errors.firstName && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-sm text-red-600"
-                  >
-                    {errors.firstName}
-                  </motion.p>
-                )}
-              </div>
-
-              {/* Last Name */}
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Last name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiUser className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    autoComplete="family-name"
-                    required
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
-                      errors.lastName ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Last name"
-                  />
-                </div>
-                {errors.lastName && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-sm text-red-600"
-                  >
-                    {errors.lastName}
-                  </motion.p>
-                )}
-              </div>
-            </div>
-
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                  placeholder="Enter your email"
-                />
-              </div>
-              {errors.email && (
-                <motion.p
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600"
-                >
-                  {errors.email}
-                </motion.p>
-              )}
-            </div>
-
-            {/* Phone Field */}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Phone number (optional)
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiPhone className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
-                    errors.phone ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                                      placeholder="+233 54 152 8841"
-                />
-              </div>
-              {errors.phone && (
-                <motion.p
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600"
-                >
-                  {errors.phone}
-                </motion.p>
-              )}
-            </div>
-
-            {/* Company Information Section */}
-            <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Company Information</h3>
-              
-              {/* Company Name */}
-              <div className="mb-6">
-                <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Company name *
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiHome className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="companyName"
-                    name="companyName"
-                    type="text"
-                    autoComplete="organization"
-                    required
-                    value={formData.companyName}
-                    onChange={handleInputChange}
-                    className={`appearance-none relative block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
-                      errors.companyName ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Enter your company name"
-                  />
-                </div>
-                {errors.companyName && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-sm text-red-600"
-                  >
-                    {errors.companyName}
-                  </motion.p>
-                )}
-              </div>
-
-              {/* Company Type */}
-              <div className="mb-6">
-                <label htmlFor="companyType" className="block text-sm font-medium text-gray-700 mb-2">
-                  Company type/industry *
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiBriefcase className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <select
-                    id="companyType"
-                    name="companyType"
-                    required
-                    value={formData.companyType}
-                    onChange={handleInputChange}
-                    className={`appearance-none relative block w-full pl-10 pr-10 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
-                      errors.companyType ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select company type</option>
-                    {COMPANY_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-                {errors.companyType && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-sm text-red-600"
-                  >
-                    {errors.companyType}
-                  </motion.p>
-                )}
-              </div>
-
-              {/* Company Role */}
-              <div className="mb-6">
-                <label htmlFor="companyRole" className="block text-sm font-medium text-gray-700 mb-2">
-                  Your role at the company *
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiUser className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <select
-                    id="companyRole"
-                    name="companyRole"
-                    required
-                    value={formData.companyRole}
-                    onChange={handleInputChange}
-                    className={`appearance-none relative block w-full pl-10 pr-10 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
-                      errors.companyRole ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select your role</option>
-                    {COMPANY_ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-                {errors.companyRole && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-sm text-red-600"
-                  >
-                    {errors.companyRole}
-                  </motion.p>
-                )}
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className={`appearance-none relative block w-full pl-10 pr-10 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                  placeholder="Create a password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={togglePasswordVisibility}
-                >
-                  {showPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  ) : (
-                    <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <motion.p
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600"
-                >
-                  {errors.password}
-                </motion.p>
-              )}
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className={`appearance-none relative block w-full pl-10 pr-10 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-golden-500 sm:text-sm ${
-                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                  placeholder="Confirm your password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={toggleConfirmPasswordVisibility}
-                >
-                  {showConfirmPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  ) : (
-                    <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  )}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <motion.p
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-sm text-red-600"
-                >
-                  {errors.confirmPassword}
-                </motion.p>
-              )}
-            </div>
-
-            {/* Terms and Conditions */}
-            <div className="flex items-center">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                required
-                className="h-4 w-4 text-golden-600 focus:ring-golden-500 border-gray-300 rounded"
-              />
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
-                I agree to the{' '}
-                <Link
-                  to="/terms"
-                  className="font-medium text-golden-600 hover:text-golden-500"
-                >
-                  Terms and Conditions
-                </Link>
-                {' '}and{' '}
-                <Link
-                  to="/privacy"
-                  className="font-medium text-golden-600 hover:text-golden-500"
-                >
-                  Privacy Policy
-                </Link>
-              </label>
-            </div>
-
-            {/* Submit Button */}
-            <div>
-              <button
-                type="submit"
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-golden-600 hover:bg-golden-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-golden-500 transition-colors duration-200"
-              >
-                Create account
-              </button>
-            </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            {currentStep === 1 && renderStep1()}
+            {currentStep === 2 && renderStep2()}
           </form>
 
           {/* Sign In Link */}
@@ -679,7 +756,7 @@ const Register = () => {
                 to="/login"
                 className="font-medium text-golden-600 hover:text-golden-500"
               >
-                Sign in to your account
+                Sign in instead
               </Link>
             </div>
           </div>
@@ -689,4 +766,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default RegisterMultiStep;

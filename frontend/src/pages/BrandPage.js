@@ -40,7 +40,7 @@ const BrandPage = () => {
   const scaleTransform = useTransform(scrollYProgress, [0, 1], ['scale(1)', 'scale(1.1)']);
   
   const brand = getBrandBySlug(brandSlug);
-  const brandProducts = brand ? getProductsByBrand(brand._id) : [];
+  const brandProducts = brand ? getProductsByBrand(brand.id) : [];
   const brandData = useBrandData(brandSlug);
 
   if (!brand) {
@@ -110,13 +110,12 @@ const BrandPage = () => {
 
         {/* La Veeda Product Showcase */}
         <LaVeedaProductShowcase
-          products={products}
+          products={brandProducts}
           brandColors={brandData.brandColors}
         />
 
-        {/* Ultimate Skincare Collection Section */}
+        {/* Featured Product Section */}
         <UltimateCollectionSection
-          featuredProduct={brandData.featuredProduct}
           brandColors={brandData.brandColors}
         />
 
@@ -165,13 +164,12 @@ const BrandPage = () => {
 
         {/* AfriSmocks Product Showcase */}
         <AfriSmocksProductShowcase
-          products={products}
+          products={brandProducts}
           brandColors={brandData.brandColors}
         />
 
-        {/* Ultimate Fashion Collection Section */}
+        {/* Featured Product Section */}
         <AfriSmocksCollectionSection
-          featuredProduct={brandData.featuredProduct}
           brandColors={brandData.brandColors}
         />
 
@@ -235,12 +233,13 @@ const BrandPage = () => {
 
         {/* OgriBusiness Product Showcase */}
         <OgriBusinessProductShowcase
-          products={products}
+          products={brandProducts}
           brandColors={brandData.brandColors}
         />
 
-        {/* Quality Section */}
+        {/* Featured Product Section */}
         <OgriBusinessQualitySection
+          featuredProduct={brandData.featuredProduct}
           brandColors={brandData.brandColors}
         />
 
@@ -268,7 +267,12 @@ const BrandPage = () => {
   }
 
   // Fallback for unknown brands
-  return <LegacyBrandPage brand={brand} />;
+  return <LegacyBrandPage 
+    brand={brand} 
+    brandInfo={brandInfo}
+    brandProducts={brandProducts}
+    brandSlug={brandSlug}
+  />;
 };
 
 export default BrandPage;

@@ -13,10 +13,16 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Add auth token if available
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('ogla-token') || localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Don't set Content-Type for FormData (let browser set it with boundary)
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => {
@@ -27,14 +33,23 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    return response.data;
+    return response;
   },
   (error) => {
     // Handle common errors
     if (error.response?.status === 401) {
       // Unauthorized - redirect to login
+      localStorage.removeItem('ogla-token');
       localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      localStorage.removeItem('ogla-user');
+      
+      // Check if we're on admin pages and redirect accordingly
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/admin')) {
+        window.location.href = '/admin/login';
+      } else {
+        window.location.href = '/login';
+      }
     }
     
     if (error.response?.status === 404) {

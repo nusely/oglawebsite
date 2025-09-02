@@ -1,19 +1,19 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 
-// User structure
-const User = {
-  _id: '',
-  email: '',
-  firstName: '',
-  lastName: '',
-  phone: '',
-  companyName: '',
-  companyType: '',
-  companyRole: '',
-  role: 'customer', // 'customer', 'admin'
-  createdAt: '',
-  lastLogin: ''
-};
+// User structure (for reference)
+// const User = {
+//   _id: '',
+//   email: '',
+//   firstName: '',
+//   lastName: '',
+//   phone: '',
+//   companyName: '',
+//   companyType: '',
+//   companyRole: '',
+//   role: 'customer', // 'customer', 'admin'
+//   createdAt: '',
+//   lastLogin: ''
+// };
 
 // Auth state structure
 const initialState = {
@@ -109,67 +109,83 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Load user from localStorage on mount
+  // Load user from token on mount
   useEffect(() => {
-    const loadUser = () => {
-      try {
-        const savedUser = localStorage.getItem('ogla-user');
-        if (savedUser) {
-          const user = JSON.parse(savedUser);
-          dispatch({ type: AUTH_ACTIONS.LOAD_USER, payload: { user } });
-        } else {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('ogla-token');
+      if (token) {
+        try {
+          // Verify token and get user data
+          const response = await fetch('http://localhost:5000/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              dispatch({ type: AUTH_ACTIONS.LOAD_USER, payload: { user: data.data.user } });
+            } else {
+              // Token invalid, remove it
+              localStorage.removeItem('ogla-token');
+              dispatch({ type: AUTH_ACTIONS.LOAD_USER, payload: { user: null } });
+            }
+          } else {
+            // Token invalid, remove it
+            localStorage.removeItem('ogla-token');
+            dispatch({ type: AUTH_ACTIONS.LOAD_USER, payload: { user: null } });
+          }
+        } catch (error) {
+          console.error('Error loading user:', error);
+          localStorage.removeItem('ogla-token');
           dispatch({ type: AUTH_ACTIONS.LOAD_USER, payload: { user: null } });
         }
-      } catch (error) {
-        console.error('Error loading user from localStorage:', error);
+      } else {
         dispatch({ type: AUTH_ACTIONS.LOAD_USER, payload: { user: null } });
       }
     };
 
-    loadUser();
+    initializeAuth();
   }, []);
-
-  // Save user to localStorage whenever it changes
-  useEffect(() => {
-    if (state.user) {
-      localStorage.setItem('ogla-user', JSON.stringify(state.user));
-    } else {
-      localStorage.removeItem('ogla-user');
-    }
-  }, [state.user]);
 
   // Auth actions
   const login = async (email, password) => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
     
     try {
-      // This will be replaced with actual API call
-      // For now, simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data - replace with actual API response
-      const mockUser = {
-        _id: 'user123',
-        email,
-        firstName: 'John',
-        lastName: 'Doe',
-        phone: '+233 54 152 8841',
-        companyName: 'Sample Company Ltd',
-        companyType: 'Manufacturing',
-        companyRole: 'Manager/Director',
-        role: 'customer',
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
-      };
-      
-      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { user: mockUser } });
-      return { success: true };
-    } catch (error) {
+      // Try real API call first
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      if (data.success) {
+        const user = data.data.user;
+        // Store token in localStorage
+        localStorage.setItem('ogla-token', data.data.token);
+        dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { user } });
+        return { success: true, user };
+      } else {
+        throw new Error(data.message || 'Login failed');
+      }
+    } catch (apiError) {
+      // If API failed, show error
       dispatch({ 
         type: AUTH_ACTIONS.LOGIN_FAILURE, 
-        payload: { error: error.message || 'Login failed' } 
+        payload: { error: apiError.message || 'Login failed' } 
       });
-      return { success: false, error: error.message };
+      return { success: false, error: apiError.message };
     }
   };
 
@@ -177,26 +193,30 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: AUTH_ACTIONS.REGISTER_START });
     
     try {
-      // This will be replaced with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data - replace with actual API response
-      const mockUser = {
-        _id: 'user' + Date.now(),
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        phone: userData.phone || '',
-        companyName: userData.companyName,
-        companyType: userData.companyType,
-        companyRole: userData.companyRole,
-        role: 'customer',
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
-      };
-      
-      dispatch({ type: AUTH_ACTIONS.REGISTER_SUCCESS, payload: { user: mockUser } });
-      return { success: true };
+      // Call actual registration API
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      if (data.success) {
+        const user = data.data.user;
+        // Store token in localStorage
+        localStorage.setItem('ogla-token', data.data.token);
+        dispatch({ type: AUTH_ACTIONS.REGISTER_SUCCESS, payload: { user } });
+        return { success: true, user, requiresVerification: !user.emailVerified };
+      } else {
+        throw new Error(data.message || 'Registration failed');
+      }
     } catch (error) {
       dispatch({ 
         type: AUTH_ACTIONS.REGISTER_FAILURE, 
@@ -207,6 +227,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    localStorage.removeItem('ogla-token');
     dispatch({ type: AUTH_ACTIONS.LOGOUT });
   };
 
@@ -214,9 +235,11 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: AUTH_ACTIONS.UPDATE_PROFILE, payload: { updates } });
   };
 
-  const clearError = () => {
+
+
+  const clearError = useCallback(() => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
-  };
+  }, []);
 
   const value = {
     ...state,

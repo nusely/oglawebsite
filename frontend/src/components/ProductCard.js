@@ -4,10 +4,13 @@ import { motion } from 'framer-motion';
 import { FiShoppingBag, FiPlus, FiCheck } from 'react-icons/fi';
 import { useRequestBasket } from '../contexts/RequestBasketContext';
 import LazyImage from './LazyImage';
+import { getProductImage } from '../utils/imageUtils';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProductCard = ({ product, className = '' }) => {
   const { addToRequest, isInRequest, getItemQuantity } = useRequestBasket();
   const [isAddingToRequest, setIsAddingToRequest] = useState(false);
+  const { user } = useAuth();
 
   const handleAddToRequest = async (e) => {
     e.preventDefault();
@@ -34,8 +37,9 @@ const ProductCard = ({ product, className = '' }) => {
 
   // Get the correct price from product
   const getProductPrice = (product) => {
-    if (product.pricing?.unitPrice) return product.pricing.unitPrice;
     if (product.price) return product.price;
+    if (product.pricing?.base) return product.pricing.base;
+    if (product.pricing?.unitPrice) return product.pricing.unitPrice;
     return 0;
   };
 
@@ -52,10 +56,10 @@ const ProductCard = ({ product, className = '' }) => {
       {/* Product Image */}
       <div className="relative overflow-hidden aspect-square">
         <LazyImage
-          src={product.images?.[0] || product.image || '/images/product-placeholder.png'}
+          src={getProductImage(product)}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          placeholder="/images/product-placeholder.png"
+          placeholder="https://res.cloudinary.com/dpznya3mz/image/upload/v1756651328/ogla/static/laveedaimageplaceholder.png/laveedaimageplaceholder.png"
         />
         
         {/* Featured Badge */}
@@ -95,9 +99,9 @@ const ProductCard = ({ product, className = '' }) => {
       {/* Product Info */}
       <div className="p-3 sm:p-4 flex-1 flex flex-col">
         {/* Brand */}
-        {product.brand && (
+        {product.brandName && (
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-            {product.brand}
+            {product.brandName}
           </p>
         )}
         
@@ -128,7 +132,7 @@ const ProductCard = ({ product, className = '' }) => {
         </div>
         
         {/* Available Sizes/Variants */}
-        {product.variants && product.variants.length > 0 && (
+        {product.variants && product.variants.length > 0 && product.variants[0]?.options && (
           <div className="mb-3">
             <p className="text-sm text-gray-500 mb-1">Available in:</p>
             <div className="flex flex-wrap gap-1">
@@ -157,31 +161,34 @@ const ProductCard = ({ product, className = '' }) => {
           >
             View Details
           </Link>
-          <button
-            onClick={handleAddToRequest}
-            disabled={isAddingToRequest}
-            className="flex-1 btn text-center text-sm sm:text-sm py-1.5 sm:py-2 text-white transition-all duration-200"
-            style={{ 
-              backgroundColor: isProductInRequest ? '#8B6914' : '#b5a033' // deep ogla gold : golden-600
-            }}
-          >
-            {isAddingToRequest ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-1 sm:mr-2"></div>
-                <span className="text-xs sm:text-sm">Adding...</span>
-              </div>
-            ) : isProductInRequest ? (
-              <div className="flex items-center justify-center">
-                <FiCheck className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="text-xs sm:text-sm">In Request ({requestQuantity})</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center">
-                <FiPlus className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="text-xs sm:text-sm">Add to Request</span>
-              </div>
-            )}
-          </button>
+          {/* Add to Request Button - Hidden for admins */}
+          {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
+            <button
+              onClick={handleAddToRequest}
+              disabled={isAddingToRequest}
+              className="flex-1 btn text-center text-sm sm:text-sm py-1.5 sm:py-2 text-white transition-all duration-200"
+              style={{ 
+                backgroundColor: isProductInRequest ? '#8B6914' : '#b5a033' // deep ogla gold : golden-600
+              }}
+            >
+              {isAddingToRequest ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-1 sm:mr-2"></div>
+                  <span className="text-xs sm:text-sm">Adding...</span>
+                </div>
+              ) : isProductInRequest ? (
+                <div className="flex items-center justify-center">
+                  <FiCheck className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm">In Request ({requestQuantity})</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <FiPlus className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm">Add to Request</span>
+                </div>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </motion.div>

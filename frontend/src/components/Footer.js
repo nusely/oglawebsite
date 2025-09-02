@@ -12,7 +12,7 @@ const Footer = () => {
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center">
                 <img 
-                  src="/images/ogla_icon.webp" 
+                  src="https://res.cloudinary.com/dpznya3mz/image/upload/v1756651335/ogla/static/ogla_icon.webp/ogla_icon.png" 
                   alt="Ogla Icon" 
                   className="w-full h-full object-cover rounded-lg"
                 />

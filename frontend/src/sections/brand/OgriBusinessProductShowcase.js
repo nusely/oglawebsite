@@ -5,8 +5,8 @@ import { FiArrowRight, FiStar } from 'react-icons/fi';
 import BrandProductCard from '../../components/BrandProductCard';
 
 const OgriBusinessProductShowcase = ({ products, brandColors }) => {
-  // Filter OgriBusiness products (brandId: '3')
-  const ogriBusinessProducts = products.filter(product => product.brandId === '3');
+  // Filter OgriBusiness products (brandId: 3)
+  const ogriBusinessProducts = products.filter(product => product.brandId == 3);
 
   if (ogriBusinessProducts.length === 0) {
     return null;
