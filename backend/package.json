@@ -32,6 +32,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.6.5",
     "nodemailer": "^6.9.7",
+    "playwright": "^1.55.0",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {

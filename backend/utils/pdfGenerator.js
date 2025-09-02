@@ -1,55 +1,61 @@
 // Use a proper PDF generation library (optional dependency)
-let puppeteer;
+
+let playwright;
 try {
-  puppeteer = require('puppeteer');
+  playwright = require("playwright");
 } catch (error) {
-  console.log('⚠️  Puppeteer not installed. Using fallback PDF generation.');
-  puppeteer = null;
+  console.log("⚠️  Playwright not installed. Using fallback PDF generation.");
+  playwright = null;
+}
+
+const fs = require("fs");
+const path = require("path");
+
+// Read letterhead image and convert to Base64 at module load
+const pathToLetterhead = path.join(__dirname, "../images/OGLA_SHEA_lh.jpg");
+let letterheadDataUrl = "";
+try {
+  const imgBuffer = fs.readFileSync(pathToLetterhead);
+  letterheadDataUrl = `data:image/jpeg;base64,${imgBuffer.toString("base64")}`;
+} catch (e) {
+  console.error("Could not read letterhead image:", e);
+  letterheadDataUrl = "";
 }
 
 const generatePDF = async (htmlContent, options = {}) => {
   try {
-    // Check if Puppeteer is available
-    if (puppeteer) {
-      console.log('📄 Generating PDF with Puppeteer...');
-      
-      // Launch browser
-      const browser = await puppeteer.launch({
-        headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-      
-      const page = await browser.newPage();
-      
-      // Set content and wait for images to load
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-      
-      // Wait a bit more for background images to load
+    if (playwright) {
+      console.log("📄 Generating PDF with Playwright...");
+      const browser = await playwright.chromium.launch({ headless: true });
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await page.setContent(htmlContent, { waitUntil: "networkidle" });
+      // Wait for background images to load
       await page.waitForTimeout(2000);
-      
-      // Generate PDF
+      // Ensure the viewport matches A4 size exactly
+      await page.setViewportSize({ width: 794, height: 1123 }); // 210mm x 297mm at 96dpi
       const pdfBuffer = await page.pdf({
-        format: 'A4',
+        format: "A4",
         printBackground: true,
-        margin: {
-          top: '20mm',
-          right: '15mm',
-          bottom: '20mm',
-          left: '15mm'
-        }
+        margin: { top: 0, right: 0, bottom: 0, left: 0 },
+        width: "210mm",
+        height: "297mm",
+        preferCSSPageSize: true,
       });
-      
       await browser.close();
-      
-      console.log('✅ PDF generated successfully with Puppeteer, size:', pdfBuffer.length);
+      console.log(
+        "✅ PDF generated successfully with Playwright, size:",
+        pdfBuffer.length
+      );
       return pdfBuffer;
     } else {
-      throw new Error('Puppeteer not available');
+      throw new Error("Playwright not available");
     }
-    
   } catch (error) {
-    console.error('❌ Puppeteer PDF generation failed, using fallback PDF:', error.message);
-    
+    console.error(
+      "❌ Playwright PDF generation failed, using fallback PDF:",
+      error.message
+    );
     // Fallback to placeholder PDF
     const pdfContent = `
 %PDF-1.4
@@ -95,7 +101,7 @@ ET
 BT
 /F1 12 Tf
 72 660 Td
-(will be generated when Puppeteer is properly configured.) Tj
+(will be generated when Playwright is properly configured.) Tj
 ET
 BT
 /F1 10 Tf
@@ -105,7 +111,7 @@ ET
 endstream
 endobj
 
-xref
+
 0 5
 0000000000 65535 f 
 0000000009 00000 n 
@@ -121,22 +127,23 @@ startxref
 500
 %%EOF
     `;
-    
-    const buffer = Buffer.from(pdfContent, 'utf8');
-    console.log('✅ Fallback PDF generated successfully, size:', buffer.length);
+    const buffer = Buffer.from(pdfContent, "utf8");
+    console.log("✅ Fallback PDF generated successfully, size:", buffer.length);
     return buffer;
   }
 };
-
 // Generate invoice PDF with letterhead
 const generateInvoicePDF = async (invoiceData) => {
   try {
-    console.log('🔄 Starting invoice PDF generation for:', invoiceData.invoiceNumber);
-    
-    const letterheadUrl = 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651336/ogla/static/OGLA_SHEA_lh.jpg';
+    console.log(
+      "🔄 Starting invoice PDF generation for:",
+      invoiceData.invoiceNumber
+    );
+
+    // Use the top-level letterheadDataUrl
     const isAdmin = invoiceData.adminStamp;
-  
-  const htmlContent = `
+
+    const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -152,7 +159,7 @@ const generateInvoicePDF = async (invoiceData) => {
           color: #333;
           margin: 0;
           padding: 0;
-          background-image: url('${letterheadUrl}');
+            background-image: url('${letterheadDataUrl || ""}');
           background-size: 210mm 297mm;
           background-repeat: no-repeat;
           background-position: center;
@@ -186,11 +193,13 @@ const generateInvoicePDF = async (invoiceData) => {
         .info-section {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 20px;
+          margin-bottom: 40px;
+          gap: 40px;
         }
         .info-box {
           flex: 1;
-          margin: 0 10px;
+          margin: 0 20px;
+          line-height: 1.8;
         }
         .info-box:first-child {
           margin-left: 0;
@@ -333,17 +342,31 @@ const generateInvoicePDF = async (invoiceData) => {
         <div class="info-section">
           <div class="info-box">
             <div class="info-title">Bill To:</div>
-            <div><strong>Name:</strong> ${invoiceData.customer.firstName} ${invoiceData.customer.lastName}</div>
-            <div><strong>Company:</strong> ${invoiceData.customer.companyName || 'N/A'}</div>
+            <div><strong>Name:</strong> ${invoiceData.customer.firstName} ${
+      invoiceData.customer.lastName
+    }</div>
+            <div><strong>Company:</strong> ${
+              invoiceData.customer.companyName || "N/A"
+            }</div>
             <div><strong>Email:</strong> ${invoiceData.customer.email}</div>
-            <div><strong>Phone:</strong> ${invoiceData.customer.phone || 'N/A'}</div>
+            <div><strong>Phone:</strong> ${
+              invoiceData.customer.phone || "N/A"
+            }</div>
           </div>
           <div class="info-box">
             <div class="info-title">Invoice Details:</div>
-            <div><strong>Date:</strong> ${new Date(invoiceData.submittedAt).toLocaleDateString()}</div>
-            <div><strong>Status:</strong> ${invoiceData.status || 'PENDING'}</div>
-            <div><strong>Company Type:</strong> ${invoiceData.customer.companyType || 'N/A'}</div>
-            <div><strong>Role:</strong> ${invoiceData.customer.companyRole || 'N/A'}</div>
+            <div><strong>Date:</strong> ${new Date(
+              invoiceData.submittedAt
+            ).toLocaleDateString()}</div>
+            <div><strong>Status:</strong> ${
+              invoiceData.status || "PENDING"
+            }</div>
+            <div><strong>Company Type:</strong> ${
+              invoiceData.customer.companyType || "N/A"
+            }</div>
+            <div><strong>Role:</strong> ${
+              invoiceData.customer.companyRole || "N/A"
+            }</div>
           </div>
         </div>
 
@@ -351,28 +374,32 @@ const generateInvoicePDF = async (invoiceData) => {
           <thead>
             <tr>
               <th>Item</th>
-              <th>Description</th>
               <th>Qty</th>
               <th>Unit Price</th>
               <th>Total</th>
             </tr>
           </thead>
           <tbody>
-            ${invoiceData.items.map(item => `
+            ${invoiceData.items
+              .map(
+                (item) => `
               <tr>
-                <td>${item.name || 'Product'}</td>
-                <td>${item.shortDescription || item.description || ''}</td>
+                <td>${item.name || "Product"}</td>
                 <td>${item.quantity}</td>
                 <td>GH₵${item.price}</td>
                 <td>GH₵${(item.price * item.quantity).toFixed(2)}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join("")}
           </tbody>
         </table>
 
         <div class="total-section">
           <span class="total-label">Total:</span>
-          <span class="total-amount">GH₵${invoiceData.totalAmount.toFixed(2)}</span>
+          <span class="total-amount">GH₵${invoiceData.totalAmount.toFixed(
+            2
+          )}</span>
         </div>
 
         <div class="bank-details">
@@ -409,24 +436,27 @@ const generateInvoicePDF = async (invoiceData) => {
           </ul>
         </div>
         
-        ${isAdmin ? '<div class="system-generated">System Generated</div>' : ''}
+        ${isAdmin ? '<div class="system-generated">System Generated</div>' : ""}
       </div>
     </body>
     </html>
   `;
 
-    console.log('📄 HTML content prepared, calling generatePDF...');
+    console.log("📄 HTML content prepared, calling generatePDF...");
     const pdfBuffer = await generatePDF(htmlContent);
-    console.log('✅ Invoice PDF generated successfully for:', invoiceData.invoiceNumber);
-    
+    console.log(
+      "✅ Invoice PDF generated successfully for:",
+      invoiceData.invoiceNumber
+    );
+
     return pdfBuffer;
   } catch (error) {
-    console.error('❌ Invoice PDF generation failed:', error);
+    console.error("❌ Invoice PDF generation failed:", error);
     throw error;
   }
 };
 
 module.exports = {
   generatePDF,
-  generateInvoicePDF
+  generateInvoicePDF,
 };
