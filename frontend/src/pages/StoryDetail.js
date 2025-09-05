@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiArrowLeft, FiCalendar, FiUser, FiClock } from 'react-icons/fi';
-import SEOHead from '../components/SEOHead';
+import AdvancedSEO from '../components/AdvancedSEO';
 import api from '../services/api';
 
 const StoryDetail = () => {
@@ -65,12 +65,14 @@ const StoryDetail = () => {
 
   return (
     <>
-      <SEOHead 
+      <AdvancedSEO 
         title={`${story.title} - Ogla Shea Butter & General Trading`}
         description={story.excerpt}
         keywords={`${story.category || 'Company News'}, Ogla news, shea butter, Ghana business`}
         image={story.image_url}
         type="article"
+        publishedTime={story.created_at}
+        modifiedTime={story.updated_at}
       />
       
       <div className="min-h-screen bg-gray-50">

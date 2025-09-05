@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { FiMail, FiRefreshCw, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import api from '../services/api';
-import SEOHead from '../components/SEOHead';
+import AdvancedSEO from '../components/AdvancedSEO';
 
 const VerifyEmailPending = () => {
   const [resending, setResending] = useState(false);
@@ -70,9 +70,11 @@ const VerifyEmailPending = () => {
 
   return (
     <>
-      <SEOHead 
+      <AdvancedSEO 
         title="Verify Your Email - Ogla Shea Butter"
         description="Please check your email to verify your account."
+        type="website"
+        noindex={true}
       />
       
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">

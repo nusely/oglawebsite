@@ -24,7 +24,7 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-import SEOHead from '../components/SEOHead';
+import AdvancedSEO from '../components/AdvancedSEO';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -241,9 +241,10 @@ const Profile = () => {
 
   return (
     <>
-      <SEOHead 
+      <AdvancedSEO 
         title="My Profile - Ogla Shea Butter"
         description="Manage your profile, change password, and view your request history."
+        type="website"
       />
       
       <div className="min-h-screen bg-gray-50 py-8">

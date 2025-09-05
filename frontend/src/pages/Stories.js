@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiCalendar, FiUser, FiArrowRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
-import SEOHead from '../components/SEOHead';
+import AdvancedSEO from '../components/AdvancedSEO';
 import api from '../services/api';
 
 const Stories = () => {
@@ -99,10 +99,11 @@ const Stories = () => {
 
   return (
     <>
-      <SEOHead 
+      <AdvancedSEO 
         title="Stories & News - Ogla Shea Butter & General Trading"
         description="Read the latest news and stories from Ogla Shea Butter. Discover our journey, partnerships, and commitment to quality African products."
         keywords="Ogla news, shea butter stories, Ghana business, African products, company updates"
+        type="website"
       />
       
       <div className="min-h-screen bg-gray-50">
