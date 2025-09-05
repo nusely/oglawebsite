@@ -88,7 +88,7 @@ async function uploadToCloudinary(
  */
 router.get("/", authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "admin" && req.user.role !== "super_admin") {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
@@ -116,6 +116,113 @@ router.get("/", authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/brand-featured-products/:id
+ * Public - get a featured product by ID
+ */
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const featuredProduct = await query(`
+      SELECT 
+        bfp.*,
+        b.name as brandName,
+        b.slug as brandSlug,
+        b.brandColors,
+        p.name as productName,
+        p.images,
+        p.pricing,
+        p.specifications,
+        p.variants,
+        p.reviews
+      FROM brand_featured_products bfp
+      LEFT JOIN brands b ON bfp.brandId = b.id
+      LEFT JOIN products p ON bfp.productId = p.id
+      WHERE bfp.id = ? AND bfp.isActive = 1
+    `, [id]);
+
+    if (featuredProduct.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Featured product not found" 
+      });
+    }
+
+    const product = featuredProduct[0];
+
+    // Parse JSON fields if they exist
+    if (product.images) {
+      try {
+        product.images = JSON.parse(product.images);
+      } catch (e) {
+        product.images = [product.image]; // Fallback to single image
+      }
+    }
+
+    if (product.pricing) {
+      try {
+        product.pricing = JSON.parse(product.pricing);
+      } catch (e) {
+        product.pricing = { unitPrice: product.price };
+      }
+    }
+
+    if (product.specifications) {
+      try {
+        product.specifications = JSON.parse(product.specifications);
+      } catch (e) {
+        product.specifications = null;
+      }
+    }
+
+    if (product.variants) {
+      try {
+        product.variants = JSON.parse(product.variants);
+      } catch (e) {
+        product.variants = null;
+      }
+    }
+
+    if (product.reviews) {
+      try {
+        product.reviews = JSON.parse(product.reviews);
+      } catch (e) {
+        product.reviews = [];
+      }
+    }
+
+    // If it's a linked product, use product data, otherwise use featured product data
+    const finalProduct = product.productId ? {
+      ...product,
+      name: product.productName || product.name,
+      description: product.description,
+      price: product.price,
+      image: product.images?.[0] || product.image,
+      brandId: product.brandId
+    } : {
+      ...product,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      image: product.image,
+      brandId: product.brandId
+    };
+
+    res.json({
+      success: true,
+      data: { featuredProduct: finalProduct }
+    });
+
+  } catch (error) {
+    console.error("Error fetching featured product:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching featured product"
+    });
+  }
+});
+
+/**
  * GET /api/brand-featured-products/brand/:brandSlug
  * Public endpoint to get the latest featured product for a brand by brand slug
  */
@@ -128,17 +235,70 @@ router.get("/brand/:brandSlug", async (req, res) => {
       SELECT 
         bfp.*,
         b.name as brandName,
-        b.slug as brandSlug
+        b.slug as brandSlug,
+        p.name as productName,
+        p.description as productDescription,
+        p.images as productImages,
+        p.pricing as productPricing,
+        p.slug as productSlug
       FROM brand_featured_products bfp
       LEFT JOIN brands b ON bfp.brandId = b.id
-      WHERE b.slug = ? AND bfp.isActive = 1
+      LEFT JOIN products p ON bfp.productId = p.id
+      WHERE b.slug = ? AND (bfp.isActive = 1 OR bfp.isActive = 'true') AND (bfp.productId IS NULL OR p.isActive = 1)
       ORDER BY bfp.createdAt DESC
       LIMIT 1
     `,
       [brandSlug]
     );
 
-    const featuredProduct = rows.length ? rows[0] : null;
+    let featuredProduct = null;
+    if (rows.length > 0) {
+      const row = rows[0];
+      
+      // Handle both standalone featured products and linked products
+      if (row.productId) {
+        // This is a linked product - use product data
+        const productImages = row.productImages ? JSON.parse(row.productImages) : [];
+        const productPricing = row.productPricing ? JSON.parse(row.productPricing) : {};
+        
+        featuredProduct = {
+          id: row.id,
+          productId: row.productId,
+          brandId: row.brandId,
+          name: row.productName,
+          description: row.productDescription,
+          image: productImages.length > 0 ? productImages[0] : '/images/placeholder.jpg',
+          images: productImages,
+          pricing: productPricing,
+          price: productPricing.base ? `₵${productPricing.base}` : 'Contact for pricing',
+          slug: row.productSlug,
+          brandName: row.brandName,
+          brandSlug: row.brandSlug,
+          discount: row.discount,
+          isActive: row.isActive,
+          createdAt: row.createdAt
+        };
+      } else {
+        // This is a standalone featured product - use featured product data
+        featuredProduct = {
+          id: row.id,
+          productId: null,
+          brandId: row.brandId,
+          name: row.name,
+          description: row.description,
+          image: row.image || '/images/placeholder.jpg',
+          images: row.image ? [row.image] : [],
+          pricing: { base: parseFloat(row.price) || 0 },
+          price: row.price ? `₵${row.price}` : 'Contact for pricing',
+          slug: null,
+          brandName: row.brandName,
+          brandSlug: row.brandSlug,
+          discount: row.discount,
+          isActive: row.isActive,
+          createdAt: row.createdAt
+        };
+      }
+    }
 
     res.json({ success: true, data: { featuredProduct } });
   } catch (error) {
@@ -160,7 +320,7 @@ router.get(
   authenticateToken,
   async (req, res) => {
     try {
-      if (req.user.role !== "admin") {
+      if (req.user.role !== "admin" && req.user.role !== "super_admin") {
         return res
           .status(403)
           .json({ success: false, message: "Access denied" });
@@ -174,8 +334,8 @@ router.get(
         p.id,
         p.name,
         p.description,
-        p.pricing as price,
-        p.image as mainImage,
+        p.pricing,
+        p.images,
         p.slug,
         p.brandId,
         c.name as categoryName,
@@ -189,7 +349,21 @@ router.get(
         [brandId]
       );
 
-      res.json({ success: true, data: { products } });
+      // Format products to handle JSON fields
+      const formattedProducts = products.map(product => {
+        const parsedPricing = product.pricing ? JSON.parse(product.pricing) : {};
+        const parsedImages = product.images ? JSON.parse(product.images) : [];
+        
+        return {
+          ...product,
+          pricing: parsedPricing,
+          price: parsedPricing.base || 0, // Add simple price field for frontend compatibility
+          images: parsedImages,
+          mainImage: parsedImages.length > 0 ? parsedImages[0] : null // First image as main image
+        };
+      });
+
+      res.json({ success: true, data: { products: formattedProducts } });
     } catch (error) {
       console.error("Error fetching available products for brand:", error);
       res.status(500).json({
@@ -211,7 +385,7 @@ router.post(
   upload.single("image"),
   async (req, res) => {
     try {
-      if (req.user.role !== "admin") {
+      if (req.user.role !== "admin" && req.user.role !== "super_admin") {
         return res
           .status(403)
           .json({ success: false, message: "Access denied" });
@@ -331,7 +505,7 @@ router.put(
   upload.single("image"),
   async (req, res) => {
     try {
-      if (req.user.role !== "admin") {
+      if (req.user.role !== "admin" && req.user.role !== "super_admin") {
         return res
           .status(403)
           .json({ success: false, message: "Access denied" });
@@ -436,7 +610,7 @@ router.put(
  */
 router.delete("/:id", authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "admin" && req.user.role !== "super_admin") {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 

@@ -495,7 +495,7 @@ router.patch('/:id/restore', async (req, res) => {
 // Bulk operations for users
 router.post('/bulk/delete', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -533,7 +533,7 @@ router.post('/bulk/delete', authenticateToken, async (req, res) => {
 // Bulk update user status
 router.post('/bulk/update-status', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -642,9 +642,12 @@ router.get('/:id/requests', requireSuperAdmin, async (req, res) => {
 // Export users to CSV
 router.get('/export/csv', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
+
+    const { includeInactive = 'false' } = req.query;
+    const showOnlyActive = includeInactive !== 'true';
 
     const users = await query(`
       SELECT 
@@ -659,6 +662,7 @@ router.get('/export/csv', authenticateToken, async (req, res) => {
         COUNT(r.id) as totalRequests
       FROM users u
       LEFT JOIN requests r ON u.id = r.userId
+      ${showOnlyActive ? 'WHERE u.isActive = 1' : ''}
       GROUP BY u.id
       ORDER BY u.createdAt DESC
     `);
@@ -674,7 +678,9 @@ router.get('/export/csv', authenticateToken, async (req, res) => {
     // Log CSV export activity
     await logActivity(req.user.id, 'users_exported_csv', 'user', null, 'Admin exported users to CSV', req, {
       exportCount: users.length,
-      filename: 'users-export.csv'
+      filename: 'users-export.csv',
+      includeInactive: !showOnlyActive,
+      activeOnly: showOnlyActive
     });
 
     res.setHeader('Content-Type', 'text/csv');

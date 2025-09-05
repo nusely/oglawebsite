@@ -605,7 +605,12 @@ router.post(
           `attachment; filename="Admin_Invoice_${requestNumber}.pdf"`
         );
         res.setHeader("Content-Length", pdfBuffer.length);
-        return res.send(pdfBuffer);
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+        
+        // Ensure binary response
+        return res.end(pdfBuffer, 'binary');
       } catch (pdfError) {
         console.error("Admin PDF generation failed:", pdfError);
         return res
@@ -620,6 +625,313 @@ router.post(
     }
   }
 );
+
+/**
+ * POST /:requestNumber/user-pdf
+ * User PDF generation + download (without admin stamp)
+ * For authenticated users only - they can only download their own PDFs
+ */
+router.post(
+  "/:requestNumber/user-pdf",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { requestNumber } = req.params;
+      const userId = req.user.id;
+      
+      // Get the request - users can only download their own PDFs
+      const requests = await query(
+        `SELECT r.*, u.firstName, u.lastName, u.email as userEmail, u.companyName 
+       FROM requests r 
+       LEFT JOIN users u ON r.userId = u.id 
+       WHERE r.requestNumber = ? AND r.userId = ?`,
+        [requestNumber, userId]
+      );
+
+      if (requests.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Request not found or access denied" });
+      }
+
+      const request = requests[0];
+
+      let items = [];
+      let customerData = null;
+      try {
+        items = request.items ? JSON.parse(request.items) : [];
+        customerData = request.customerData ? JSON.parse(request.customerData) : null;
+      } catch (parseError) {
+        console.error("Error parsing request data:", parseError);
+        items = [];
+        customerData = null;
+      }
+
+      // Prepare invoice data for user PDF (no admin stamp)
+      const invoiceData = {
+        invoiceNumber: request.requestNumber,
+        customer: customerData || {
+          firstName: request.firstName || 'Unknown',
+          lastName: request.lastName || 'User',
+          email: request.userEmail || 'No email',
+          phone: 'Not provided',
+          companyName: request.companyName || 'Not provided',
+          companyType: 'Not specified',
+          companyRole: 'Not specified'
+        },
+        items: items.map(item => ({
+          name: item.name || `Product ${item.productId}`,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        totalAmount: request.totalAmount,
+        submittedAt: request.createdAt,
+        status: request.status
+      };
+
+      try {
+        const pdfBuffer = await generateInvoicePDF(invoiceData, false); // false = no admin stamp
+
+        // Log activity
+        await logActivity(
+          req.user.id,
+          "user_pdf_downloaded",
+          "request",
+          request.id,
+          "User downloaded PDF invoice",
+          req,
+          {
+            requestNumber,
+            totalAmount: request.totalAmount,
+            itemCount: Array.isArray(items) ? items.length : 0,
+          }
+        );
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="Proforma_Invoice_${requestNumber}.pdf"`
+        );
+        res.setHeader("Content-Length", pdfBuffer.length);
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+        
+        // Ensure binary response
+        return res.end(pdfBuffer, 'binary');
+      } catch (pdfError) {
+        console.error("User PDF generation failed:", pdfError);
+        return res
+          .status(500)
+          .json({ success: false, message: "Failed to generate PDF" });
+      }
+    } catch (error) {
+      console.error("User PDF generation error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to generate PDF" });
+    }
+  }
+);
+
+/**
+ * POST /:requestNumber/public-pdf
+ * Public PDF generation for guest users
+ * Requires email verification for security
+ */
+router.post(
+  "/:requestNumber/public-pdf",
+  async (req, res) => {
+    try {
+      const { requestNumber } = req.params;
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Email is required for PDF download" 
+        });
+      }
+
+      // Get the request - verify email matches the request
+      const requests = await query(
+        `SELECT r.*, COALESCE(u.firstName, JSON_EXTRACT(r.customerData, '$.firstName')) as firstName,
+         COALESCE(u.lastName, JSON_EXTRACT(r.customerData, '$.lastName')) as lastName,
+         COALESCE(u.email, JSON_EXTRACT(r.customerData, '$.email')) as userEmail,
+         COALESCE(u.companyName, JSON_EXTRACT(r.customerData, '$.companyName')) as companyName
+         FROM requests r 
+         LEFT JOIN users u ON r.userId = u.id 
+         WHERE r.requestNumber = ?`,
+        [requestNumber]
+      );
+      
+      if (requests.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Request not found" 
+        });
+      }
+
+      const request = requests[0];
+      
+      // Extract email from request data
+      let requestEmail = request.userEmail;
+      if (!requestEmail && request.customerData) {
+        try {
+          const customerData = JSON.parse(request.customerData);
+          requestEmail = customerData.email;
+        } catch (e) {
+          console.error('Error parsing customer data:', e);
+        }
+      }
+
+      // Verify email matches (case insensitive)
+      if (!requestEmail || requestEmail.toLowerCase() !== email.toLowerCase()) {
+        return res.status(403).json({ 
+          success: false, 
+          message: "Email does not match the request" 
+        });
+      }
+
+      // Parse request data
+      let items = [];
+      let customerData = null;
+      try {
+        items = request.items ? JSON.parse(request.items) : [];
+        customerData = request.customerData ? JSON.parse(request.customerData) : null;
+      } catch (parseError) {
+        console.error("Error parsing request data:", parseError);
+        items = [];
+        customerData = null;
+      }
+
+      // Prepare invoice data
+      const invoiceData = {
+        invoiceNumber: request.requestNumber,
+        customer: customerData || {
+          firstName: request.firstName || 'Unknown',
+          lastName: request.lastName || 'User',
+          email: requestEmail,
+          phone: 'Not provided',
+          companyName: request.companyName || 'Not provided',
+          companyType: 'Not specified',
+          companyRole: 'Not specified'
+        },
+        items: items.map(item => ({
+          name: item.name || `Product ${item.productId}`,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        totalAmount: request.totalAmount,
+        submittedAt: request.createdAt,
+        status: request.status
+      };
+
+      try {
+        const pdfBuffer = await generateInvoicePDF(invoiceData, false);
+
+        // Log activity (no user ID for guest downloads)
+        await logActivity(
+          null,
+          "public_pdf_downloaded",
+          "request",
+          request.id,
+          "Public PDF downloaded via email verification",
+          req,
+          {
+            requestNumber,
+            email: email,
+            totalAmount: request.totalAmount,
+            itemCount: Array.isArray(items) ? items.length : 0,
+          }
+        );
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="Proforma_Invoice_${requestNumber}.pdf"`
+        );
+        res.setHeader("Content-Length", pdfBuffer.length);
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+        
+        return res.end(pdfBuffer, 'binary');
+      } catch (pdfError) {
+        console.error("Public PDF generation failed:", pdfError);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Failed to generate PDF" 
+        });
+      }
+    } catch (error) {
+      console.error("Public PDF generation error:", error);
+      return res.status(500).json({ 
+        success: false, 
+        message: "Failed to generate PDF" 
+      });
+    }
+  }
+);
+
+/**
+ * GET /:requestNumber/data - get request data for PDF generation (authenticated users only)
+ */
+router.get("/:requestNumber/data", authenticateToken, async (req, res) => {
+  try {
+    const { requestNumber } = req.params;
+    const userId = req.user.id;
+
+    const requests = await query(
+      `SELECT r.*, u.firstName, u.lastName, u.email as userEmail, u.companyName 
+       FROM requests r 
+       LEFT JOIN users u ON r.userId = u.id 
+       WHERE r.requestNumber = ? AND r.userId = ?`,
+      [requestNumber, userId]
+    );
+
+    if (requests.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Request not found or access denied" 
+      });
+    }
+
+    const request = requests[0];
+    
+    // Parse JSON fields
+    let items = [];
+    let customerData = null;
+    try {
+      items = request.items ? JSON.parse(request.items) : [];
+      customerData = request.customerData ? JSON.parse(request.customerData) : null;
+    } catch (parseError) {
+      console.error("Error parsing request data:", parseError);
+      items = [];
+      customerData = null;
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        requestNumber: request.requestNumber,
+        items,
+        customerData,
+        totalAmount: request.totalAmount,
+        createdAt: request.createdAt,
+        status: request.status,
+        customerName: request.customerName,
+        customerEmail: request.customerEmail
+      }
+    });
+  } catch (error) {
+    console.error("Get request data error:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to get request data" 
+    });
+  }
+});
 
 /**
  * GET /my-requests - get authenticated user's requests

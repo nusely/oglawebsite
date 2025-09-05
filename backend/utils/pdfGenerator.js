@@ -43,6 +43,17 @@ const generatePDF = async (htmlContent, options = {}) => {
         preferCSSPageSize: true,
       });
       await browser.close();
+      
+      // Validate PDF buffer
+      if (!pdfBuffer || pdfBuffer.length === 0) {
+        throw new Error("Generated PDF buffer is empty");
+      }
+      
+      // Check if it's a valid PDF
+      const pdfSignature = pdfBuffer.toString('ascii', 0, 4);
+      if (pdfSignature !== '%PDF') {
+        throw new Error("Generated buffer is not a valid PDF");
+      }
       console.log(
         "✅ PDF generated successfully with Playwright, size:",
         pdfBuffer.length

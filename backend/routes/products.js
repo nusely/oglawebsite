@@ -736,7 +736,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
 // Bulk operations for products
 router.post('/bulk/delete', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -774,7 +774,7 @@ router.post('/bulk/delete', authenticateToken, async (req, res) => {
 // Bulk update product status
 router.post('/bulk/update-status', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -818,17 +818,19 @@ router.post('/bulk/update-status', authenticateToken, async (req, res) => {
 // Export products to CSV
 router.get('/export/csv', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       return res.status(403).json({ message: 'Access denied' });
     }
+
+    const { includeInactive = 'false' } = req.query;
+    const showOnlyActive = includeInactive !== 'true';
 
     const products = await query(`
       SELECT 
         p.id,
         p.name,
         p.description,
-        p.price,
-        p.stockQuantity,
+        p.pricing,
         p.isActive,
         p.createdAt,
         p.updatedAt,
@@ -837,21 +839,35 @@ router.get('/export/csv', authenticateToken, async (req, res) => {
       FROM products p
       LEFT JOIN brands b ON p.brandId = b.id
       LEFT JOIN categories c ON p.categoryId = c.id
+      ${showOnlyActive ? 'WHERE p.isActive = 1' : ''}
       ORDER BY p.createdAt DESC
     `);
 
     // Convert to CSV format
-    const csvHeader = 'ID,Name,Description,Price,Stock,Status,Brand,Category,Created,Updated\n';
-    const csvRows = products.map(product => 
-      `${product.id},"${product.name || ''}","${product.description || ''}",${product.price || 0},${product.stockQuantity || 0},${product.isActive ? 'Active' : 'Inactive'},"${product.brandName || ''}","${product.categoryName || ''}","${product.createdAt || ''}","${product.updatedAt || ''}"`
-    ).join('\n');
+    const csvHeader = 'ID,Name,Description,Price,Status,Brand,Category,Created,Updated\n';
+    const csvRows = products.map(product => {
+      // Parse pricing JSON to get base price
+      let price = 'Contact for pricing';
+      try {
+        if (product.pricing) {
+          const pricingData = JSON.parse(product.pricing);
+          price = pricingData.base ? `₵${pricingData.base}` : 'Contact for pricing';
+        }
+      } catch (e) {
+        price = 'Contact for pricing';
+      }
+      
+      return `${product.id},"${product.name || ''}","${product.description || ''}","${price}",${product.isActive ? 'Active' : 'Inactive'},"${product.brandName || ''}","${product.categoryName || ''}","${product.createdAt || ''}","${product.updatedAt || ''}"`;
+    }).join('\n');
 
     const csvContent = csvHeader + csvRows;
 
     // Log CSV export activity
     await logActivity(req.user.id, 'products_exported_csv', 'product', null, 'Admin exported products to CSV', req, {
       exportCount: products.length,
-      filename: 'products-export.csv'
+      filename: 'products-export.csv',
+      includeInactive: !showOnlyActive,
+      activeOnly: showOnlyActive
     });
 
     res.setHeader('Content-Type', 'text/csv');

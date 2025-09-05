@@ -41,6 +41,7 @@ const userActivityRoutes = require('./routes/userActivities');
 const reviewRoutes = require('./routes/reviews');
 const { router: activitiesRouter } = require('./routes/activities');
 const brandFeaturedProductsRoutes = require('./routes/brandFeaturedProducts');
+const dashboardRoutes = require('./routes/dashboard');
 
 // Security middleware
 app.use(helmet());
@@ -60,7 +61,7 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: true, // Allow all origins for development
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -76,7 +77,7 @@ app.use(morgan('combined'));
 
 // Static files with CORS headers
 app.use('/uploads', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
+  res.header('Access-Control-Allow-Origin', '*'); // Allow all origins for uploads
   res.header('Access-Control-Allow-Methods', 'GET');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   next();
@@ -103,6 +104,7 @@ app.use('/api/user-activities', userActivityRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/activities', activitiesRouter);
 app.use('/api/brand-featured-products', brandFeaturedProductsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

@@ -38,7 +38,7 @@ router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
     const usersLastMonth = usersLastMonthResult[0].count;
 
     // Calculate user growth percentage
-    const userGrowthPercent = lastMonth > 0 ? 
+    const userGrowthPercent = usersLastMonth > 0 ? 
       Math.round(((usersThisMonth - usersLastMonth) / usersLastMonth) * 100) : 0;
 
     // Total products count
