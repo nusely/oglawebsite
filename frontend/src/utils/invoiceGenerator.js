@@ -3,6 +3,8 @@
 
 import jsPDF from "jspdf";
 
+
+
 // Note: This is now primarily handled by the backend
 // Frontend should use the invoice number returned from the API
 export const generateInvoiceNumber = () => {
@@ -33,7 +35,10 @@ export const formatDate = (dateString) => {
 
 export const generateProformaInvoice = async (invoiceData, isAdminDownload = false) => {
   try {
-    const letterheadUrl = `https://res.cloudinary.com/dpznya3mz/image/upload/v1756651336/ogla/static/OGLA_SHEA_lh.jpg`;
+    // Use local letterhead image for reliable PDF generation
+    const letterheadUrl = '/images/OGLA_SHEA_lh.jpg';
+    console.log('🎯 Using local letterhead image:', letterheadUrl);
+    
     const invoiceHTML = createInvoiceHTML(invoiceData, letterheadUrl, isAdminDownload);
     const pdfBlob = await generatePDF(invoiceHTML);
     const filename = isAdminDownload 
@@ -62,13 +67,13 @@ const createInvoiceHTML = (invoiceData, letterheadUrl, isAdminDownload = false) 
     color: #333;
     width: 210mm;
     min-height: 297mm;
-    background-image: url('${letterheadUrl}');
-    background-size: 210mm 297mm;
-    background-repeat: no-repeat;
+    position: relative;
     box-sizing: border-box;
     padding: 20mm 15mm;
+    ${letterheadUrl ? `background-image: url('${letterheadUrl}'); background-size: 210mm 297mm; background-repeat: no-repeat; background-position: center;` : ''}
   ">
-    <div style="text-align:center; border-bottom: 1px solid #b5a033; margin-bottom: 20px; padding-bottom: 8px;">
+    <div style="position: relative; z-index: 1;">
+      <div style="text-align:center; border-bottom: 1px solid #b5a033; margin-bottom: 20px; padding-bottom: 8px;">
       <div style="font-size: 1.6em; font-weight: bold; color:#b5a033;">Proforma Invoice</div>
       <div style="font-size: 0.9em; color:#666; font-weight: bold;">Invoice #: ${invoiceNumber}</div>
     </div>
@@ -93,7 +98,6 @@ const createInvoiceHTML = (invoiceData, letterheadUrl, isAdminDownload = false) 
       <thead>
         <tr style="background:#b5a033; color:white;">
           <th style="padding:8px 4px; text-align:left;">Item</th>
-          <th style="padding:8px 4px; text-align:left;">Description</th>
           <th style="padding:8px 4px; text-align:left;">Qty</th>
           <th style="padding:8px 4px; text-align:left;">Unit Price</th>
           <th style="padding:8px 4px; text-align:left;">Total</th>
@@ -105,10 +109,9 @@ const createInvoiceHTML = (invoiceData, letterheadUrl, isAdminDownload = false) 
             (item) => `
           <tr style="border-bottom: 1px solid #dee2e6;">
             <td style="padding:6px 4px;">${item.name}</td>
-            <td style="padding:6px 4px;">${item.shortDescription || item.description || ""}</td>
             <td style="padding:6px 4px;">${item.quantity}</td>
-            <td style="padding:6px 4px;">${formatPrice(item.price)}</td>
-            <td style="padding:6px 4px;">${formatPrice(item.price * item.quantity)}</td>
+            <td style="padding:6px 4px;">GH₵${item.price}</td>
+            <td style="padding:6px 4px;">GH₵${(item.price * item.quantity).toFixed(2)}</td>
           </tr>`
           )
           .join("")}
@@ -117,7 +120,31 @@ const createInvoiceHTML = (invoiceData, letterheadUrl, isAdminDownload = false) 
 
     <div style="text-align:right; border-top:2px solid #b5a033; margin-top:15px; padding-top:10px;">
       <span style="font-weight:bold; font-size: 1.1em; margin-right:10px;">Total:</span>
-      <span style="font-weight:bold; font-size: 1.1em; color:#b5a033;">${formatPrice(totalAmount)}</span>
+      <span style="font-weight:bold; font-size: 1.1em; color:#b5a033;">GH₵${totalAmount.toFixed(2)}</span>
+    </div>
+
+    <div style="margin-top:30px; padding:15px; background:rgba(248,249,250,0.8); border-radius:5px; border:1px solid #dee2e6;">
+      <h4 style="color:#b5a033; margin:0 0 15px 0; font-size:1.1em;">Bank Payment Details</h4>
+      <div style="display:flex; gap:15px; flex-wrap:wrap;">
+        <div style="flex:1; text-align:center; padding:10px; background:rgba(248,249,250,0.8); border-radius:5px; border:1px solid #dee2e6;">
+          <div style="font-weight:bold; color:#b5a033; font-size:0.9em; margin-bottom:5px;">Ecobank Ghana</div>
+          <div style="font-size:0.7em; color:#666; margin-bottom:5px;">Head Office, Ridge – Accra</div>
+          <div style="font-weight:bold; font-size:0.8em; margin-bottom:3px;">OGLA SHEA BUTTER & TRADING</div>
+          <div style="font-family:'Courier New',monospace; font-size:0.8em; color:#333; background:#f8f9fa; padding:2px 5px; border-radius:3px;">1441002558413</div>
+        </div>
+        <div style="flex:1; text-align:center; padding:10px; background:rgba(248,249,250,0.8); border-radius:5px; border:1px solid #dee2e6;">
+          <div style="font-weight:bold; color:#b5a033; font-size:0.9em; margin-bottom:5px;">First Bank Ghana</div>
+          <div style="font-size:0.7em; color:#666; margin-bottom:5px;">Osu Branch – Accra</div>
+          <div style="font-weight:bold; font-size:0.8em; margin-bottom:3px;">OGLA SHEA BUTTER & TRADING</div>
+          <div style="font-family:'Courier New',monospace; font-size:0.8em; color:#333; background:#f8f9fa; padding:2px 5px; border-radius:3px;">0203400000888</div>
+        </div>
+        <div style="flex:1; text-align:center; padding:10px; background:rgba(248,249,250,0.8); border-radius:5px; border:1px solid #dee2e6;">
+          <div style="font-weight:bold; color:#b5a033; font-size:0.9em; margin-bottom:5px;">Access Bank Ghana</div>
+          <div style="font-size:0.7em; color:#666; margin-bottom:5px;">Stadium Branch – Accra</div>
+          <div style="font-weight:bold; font-size:0.8em; margin-bottom:3px;">OGLA SHEA BUTTER & TRADING</div>
+          <div style="font-family:'Courier New',monospace; font-size:0.8em; color:#333; background:#f8f9fa; padding:2px 5px; border-radius:3px;">100900031728</div>
+        </div>
+      </div>
     </div>
 
     <div style="margin-top:25px; padding:10px; background:rgba(248,249,250,0.8); border-left:3px solid #b5a033;">
@@ -143,40 +170,50 @@ const createInvoiceHTML = (invoiceData, letterheadUrl, isAdminDownload = false) 
       </div>
     </div>
     ` : ''}
+    </div>
   </div>`;
 };
 
 const generatePDF = async (htmlContent) => {
   const { jsPDF } = await import("jspdf");
   const html2canvas = await import("html2canvas");
-
-  // First, convert the letterhead image to base64 to avoid CORS issues
-  const letterheadUrl = 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651336/ogla/static/OGLA_SHEA_lh.jpg';
   
   try {
-    // Convert external image to base64
-    const response = await fetch(letterheadUrl);
-    const blob = await response.blob();
-    const reader = new FileReader();
-    
-    const base64Promise = new Promise((resolve, reject) => {
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-    });
-    
-    reader.readAsDataURL(blob);
-    const base64Image = await base64Promise;
-    
-    // Replace the external URL with base64 in the HTML
-    const htmlWithBase64 = htmlContent.replace(letterheadUrl, base64Image);
-    
     const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = htmlWithBase64;
+    tempDiv.innerHTML = htmlContent;
     tempDiv.style.position = "absolute";
     tempDiv.style.left = "-9999px";
     tempDiv.style.width = "210mm";
     tempDiv.style.height = "297mm";
     document.body.appendChild(tempDiv);
+
+    // Wait for images to load before rendering (local images should load quickly)
+    const images = tempDiv.querySelectorAll('img');
+    if (images.length > 0) {
+      console.log('🖼️ Found', images.length, 'images, waiting for them to load...');
+      await Promise.all(Array.from(images).map((img, index) => {
+        if (img.complete && img.naturalHeight !== 0) {
+          console.log(`✅ Image ${index + 1} already loaded`);
+          return Promise.resolve();
+        }
+        return new Promise(resolve => {
+          img.onload = () => {
+            console.log(`✅ Image ${index + 1} loaded successfully`);
+            resolve();
+          };
+          img.onerror = (error) => {
+            console.error(`❌ Image ${index + 1} failed to load:`, error);
+            resolve(); // Continue even if image fails to load
+          };
+          // Shorter timeout for local images
+          setTimeout(() => {
+            console.log(`⏰ Image ${index + 1} load timeout`);
+            resolve();
+          }, 3000);
+        });
+      }));
+      console.log('🎯 All images processed');
+    }
 
     const canvas = await html2canvas.default(tempDiv, {
       scale: 2,
@@ -184,6 +221,9 @@ const generatePDF = async (htmlContent) => {
       logging: false,
       backgroundColor: "#ffffff",
       allowTaint: true,
+      foreignObjectRendering: false,
+      imageTimeout: 15000,
+      removeContainer: false,
     });
 
     document.body.removeChild(tempDiv);
@@ -195,7 +235,7 @@ const generatePDF = async (htmlContent) => {
     return pdf.output("blob");
     
   } catch (error) {
-    console.error("Error converting letterhead to base64:", error);
+    console.error("Error generating PDF:", error);
     
     // Fallback: generate PDF without letterhead
     const tempDiv = document.createElement("div");

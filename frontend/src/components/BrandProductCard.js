@@ -175,33 +175,16 @@ const BrandProductCard = ({ product, brandColors }) => {
         )}
         
         {/* Action Buttons - Use Brand Colors */}
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-auto">
-                     <Link 
-             to={`/product/${product.slug}`}
-             className="flex-1 btn text-center text-xs sm:text-sm py-1.5 sm:py-2 bg-transparent border-2 hover:text-white transition-all duration-200"
+        <div className="flex flex-col space-y-2 mt-auto">
+          {/* Add to Request Button - Now visible for all users */}
+          <button
+            onClick={handleAddToRequest}
+            disabled={isAddingToRequest}
+            className="w-full btn text-center text-xs sm:text-sm py-1.5 sm:py-2 text-white transition-all duration-200"
             style={{ 
-              color: brandColors?.primary || brand?.brandColors?.primary || '#b5a033',
-              borderColor: brandColors?.primary || brand?.brandColors?.primary || '#b5a033'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = brandColors?.primary || brand?.brandColors?.primary || '#b5a033';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
+              backgroundColor: brandColors?.primary || brand?.brandColors?.primary || '#b5a033'
             }}
           >
-            View Details
-          </Link>
-          {/* Add to Request Button - Hidden for admins */}
-          {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
-            <button
-              onClick={handleAddToRequest}
-              disabled={isAddingToRequest}
-              className="flex-1 btn text-center text-xs sm:text-sm py-1.5 sm:py-2 text-white transition-all duration-200"
-              style={{ 
-                backgroundColor: brandColors?.primary || brand?.brandColors?.primary || '#b5a033'
-              }}
-            >
               {isAddingToRequest ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-1 sm:mr-2"></div>
@@ -219,7 +202,23 @@ const BrandProductCard = ({ product, brandColors }) => {
                 </div>
               )}
             </button>
-          )}
+          
+          <Link 
+            to={`/product/${product.slug}`}
+            className="w-full btn text-center text-xs sm:text-sm py-1.5 sm:py-2 bg-transparent border-2 hover:text-white transition-all duration-200"
+            style={{ 
+              color: brandColors?.primary || brand?.brandColors?.primary || '#b5a033',
+              borderColor: brandColors?.primary || brand?.brandColors?.primary || '#b5a033'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = brandColors?.primary || brand?.brandColors?.primary || '#b5a033';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+            }}
+          >
+            View Details
+          </Link>
         </div>
       </div>
     </div>

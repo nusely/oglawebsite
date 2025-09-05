@@ -6,9 +6,8 @@ import { useProducts } from '../hooks/useProducts';
 import BrandCard from '../components/BrandCard';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton, BrandCardSkeleton } from '../components/LoadingSkeleton';
-import SEOHead from '../components/SEOHead';
-import PartnersSection from '../components/PartnersSection';
-import StoryPopup from '../components/StoryPopup';
+import AdvancedSEO from '../components/AdvancedSEO';
+import { generateLocalBusinessStructuredData } from '../utils/seoUtils';
 
 const Home = () => {
   const { brands, getFeaturedProducts, loading } = useProducts();
@@ -17,11 +16,18 @@ const Home = () => {
   // Hero images array
   const heroImages = [
     {
-      src: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651303/ogla/static/hero/Image_hero1.jpg/Image_hero1.jpg',
+      src: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1757074429/shea_butter_and_nut_e82crb.jpg',
       alt: 'Premium Shea Butter Products',
       title: 'Unrefined Shea Butter from',
       subtitle: 'Northern Ghana',
       description: 'Discover authentic Ghanaian craftsmanship through our three distinct brands: quality shea butter, traditional clothing, and premium agricultural products.'
+    },
+    {
+      src: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1757096166/image-9024x576_j8wfaj.webp',
+      alt: 'African Smocks and Kente',
+      title: 'Traditional African Smocks and',
+      subtitle: 'Kente Cloth',
+      description: 'Embrace the vibrant culture of Ghana with our authentic African smocks, traditional kente cloth, and contemporary African fashion pieces.'
     },
     {
       src: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651305/ogla/static/hero/Image_hero2.webp/Image_hero2.jpg',
@@ -35,13 +41,13 @@ const Home = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
-  // Auto-rotate hero images every 5 seconds
+  // Auto-rotate hero images every 8 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prevIndex) => 
         prevIndex === heroImages.length - 1 ? 0 : prevIndex + 1
       );
-    }, 5000);
+    }, 8000);
 
     return () => clearInterval(interval);
   }, [heroImages.length]);
@@ -72,16 +78,19 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      <StoryPopup />
-      <SEOHead 
+      <AdvancedSEO 
         title="Premium African Products - Shea Butter, Textiles & Business Solutions"
-        description="Discover premium shea butter products, authentic African textiles, and innovative business solutions from Ghana"
-        keywords="shea butter, African textiles, B2B trading, La Veeda, AfriSmocks, OgriBusiness, Ghana, African products, wholesale, business solutions, premium quality"
+        description="Discover premium shea butter products, authentic African textiles, and innovative business solutions from Ghana. La Veeda skincare, AfriSmocks fashion, and OgriBusiness solutions."
+        keywords="shea butter, African textiles, B2B trading, La Veeda, AfriSmocks, OgriBusiness, Ghana, African products, wholesale, business solutions, premium quality, natural skincare, traditional crafts, sustainable sourcing"
         image="/images/ogla-hero.jpg"
         type="website"
+        structuredData={generateLocalBusinessStructuredData()}
+        breadcrumbs={[
+          { name: 'Home', url: '/' }
+        ]}
       />
       {/* Hero Section */}
-      <section className="relative h-screen overflow-hidden">
+      <section className="relative h-screen overflow-hidden bg-gradient-to-br from-golden-100/20 to-golden-200/30">
         {/* Background Image Carousel */}
         <AnimatePresence mode="wait">
           <motion.div
@@ -104,8 +113,8 @@ const Home = () => {
 
         {/* Content Overlay */}
         <div className="relative z-10 h-full flex items-center">
-          <div className="container px-4 sm:px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="container">
+            <div className="grid grid-cols-1 lg:grid-cols-2 grid-gap items-center">
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -119,11 +128,11 @@ const Home = () => {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.5 }}
                   >
-                    <h1 className="text-4xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
+                    <h1 className="text-white mb-4 sm:mb-6 text-[2.8rem] sm:text-[2.5rem] md:text-[3.2rem] lg:text-[4rem] xl:text-[5rem] leading-tight">
                       {heroImages[currentImageIndex].title}{' '}
                       <span className="text-golden-300">{heroImages[currentImageIndex].subtitle}</span>
                     </h1>
-                    <p className="text-lg sm:text-lg lg:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl">
+                    <p className="text-white/90 mb-6 sm:mb-8 max-w-2xl">
                       {heroImages[currentImageIndex].description}
                     </p>
                   </motion.div>
@@ -132,14 +141,14 @@ const Home = () => {
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <Link 
                     to="/products" 
-                    className="btn bg-golden-500 text-white hover:bg-golden-600 text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 flex items-center justify-center"
+                    className="btn btn-lg bg-golden-500 text-white hover:bg-golden-600 flex items-center justify-center"
                   >
                     Explore Products
                     <FiArrowRight className="ml-2" />
                   </Link>
                   <Link 
                     to="/contact" 
-                    className="btn border-2 border-white text-white hover:bg-white hover:text-gray-900 text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3"
+                    className="btn btn-lg border-2 border-white text-white hover:bg-white hover:text-gray-900"
                   >
                     Contact Us
                   </Link>
@@ -235,8 +244,8 @@ const Home = () => {
       </section>
 
       {/* Brands Section */}
-      <section className="py-12 sm:py-16 bg-white">
-        <div className="container px-4 sm:px-6">
+      <section className="section-padding bg-white">
+        <div className="container">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -244,16 +253,16 @@ const Home = () => {
             transition={{ duration: 0.8 }}
             className="text-center mb-8 sm:mb-12"
           >
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+            <h2 className="text-gray-900 mb-3 sm:mb-4">
               Our Brands
             </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto px-4">
+            <p className="text-gray-600 max-w-3xl mx-auto">
               Each brand represents a unique aspect of Ghanaian heritage and craftsmanship, 
               from natural beauty products to traditional clothing and agricultural excellence.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-gap">
             {loading ? (
               Array.from({ length: 3 }).map((_, index) => (
                 <motion.div
@@ -284,8 +293,8 @@ const Home = () => {
       </section>
 
       {/* Featured Products Section */}
-      <section className="py-12 sm:py-16 bg-gray-50">
-        <div className="container px-4 sm:px-6">
+      <section className="section-padding bg-gray-50">
+        <div className="container">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -293,16 +302,16 @@ const Home = () => {
             transition={{ duration: 0.8 }}
             className="text-center mb-8 sm:mb-12"
           >
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+            <h2 className="text-gray-900 mb-3 sm:mb-4">
               Featured Products
             </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 px-4">
+            <p className="text-gray-600">
               Discover our most popular and premium products across all brands
             </p>
           </motion.div>
 
           {/* Products Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 grid-gap">
             {loading ? (
               Array.from({ length: 6 }).map((_, index) => (
                 <motion.div
@@ -341,7 +350,7 @@ const Home = () => {
             >
               <Link 
                 to="/products" 
-                className="btn btn-primary text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 inline-flex items-center"
+                className="btn btn-lg btn-primary inline-flex items-center"
               >
                 View All Products
                 <FiArrowRight className="ml-2" />
@@ -352,9 +361,9 @@ const Home = () => {
       </section>
 
       {/* Story Section */}
-      <section className="py-12 sm:py-16 bg-white">
-        <div className="container px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+      <section className="section-padding bg-white">
+        <div className="container">
+          <div className="grid grid-cols-1 lg:grid-cols-2 grid-gap items-center">
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -374,15 +383,15 @@ const Home = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">
+              <h2 className="text-gray-900 mb-4 sm:mb-6">
                 Empowering Communities
               </h2>
-              <p className="text-base sm:text-lg text-gray-600 mb-4 sm:mb-6">
+              <p className="text-gray-600 mb-4 sm:mb-6">
                 More than just a brand, we're a beacon of empowerment and opportunity in the heart of Ghana. 
                 Founded with a vision to uplift and support rural communities, especially women, 
                 we've become a driving force for positive change.
               </p>
-              <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">
+              <p className="text-gray-600 mb-6 sm:mb-8">
                 Through our Shea Butter production, which engages over 300 dedicated women from local communities, 
                 we not only create jobs but also empower these women to become financially independent and self-reliant.
               </p>
@@ -398,7 +407,7 @@ const Home = () => {
               </div>
               <Link 
                 to="/about" 
-                className="btn btn-primary text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 inline-flex items-center"
+                className="btn btn-lg btn-primary inline-flex items-center"
               >
                 Learn More
                 <FiArrowRight className="ml-2" />
@@ -417,7 +426,7 @@ const Home = () => {
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 sm:w-64 h-32 sm:h-64 bg-golden-500/5 rounded-full blur-2xl"></div>
         </div>
 
-        <div className="container mx-auto px-4 sm:px-6 relative z-10">
+        <div className="container relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -428,10 +437,10 @@ const Home = () => {
             <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-golden-600/20 backdrop-blur-sm rounded-2xl mb-4 sm:mb-6">
               <FiStar className="w-6 h-6 sm:w-8 sm:h-8 text-golden-400" />
             </div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold text-white font-serif mb-4 sm:mb-6">
+            <h2 className="text-white font-serif mb-4 sm:mb-6">
               Stand Out from the Crowd
             </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-gray-300 max-w-3xl mx-auto px-4">
+            <p className="text-gray-300 max-w-3xl mx-auto">
               Discover what our customers say about the quality and impact of our products
             </p>
           </motion.div>
@@ -680,35 +689,62 @@ const Home = () => {
         </motion.div>
       </section>
 
-      {/* Partners Section */}
-      <PartnersSection />
+      {/* Parallax Section */}
+      <section className="relative h-96 overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-fixed"
+          style={{
+            backgroundImage: 'url(https://res.cloudinary.com/dpznya3mz/image/upload/v1756899498/rawsheabutter__q3buz2.jpg)',
+            transform: 'translateZ(0)',
+            willChange: 'transform'
+          }}
+        />
+        <div className="absolute inset-0 bg-black bg-opacity-40" />
+        <div className="relative z-10 h-full flex items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center text-white px-4"
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+              Pure Natural Ingredients
+            </h2>
+            <p className="text-lg sm:text-xl max-w-2xl mx-auto">
+              From the heart of Northern Ghana, we bring you the finest raw shea butter 
+              and natural products, crafted with traditional methods and modern quality standards.
+            </p>
+          </motion.div>
+        </div>
+      </section>
 
       {/* CTA Section */}
-      <section className="py-12 sm:py-16 bg-gradient-to-r from-golden-600 to-golden-700">
-        <div className="container px-4 sm:px-6 text-center">
+      <section className="section-padding bg-gradient-to-r from-golden-600 to-golden-700">
+        <div className="container text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 sm:mb-4">
+            <h2 className="text-white mb-3 sm:mb-4">
               Ready to Experience Quality?
             </h2>
-            <p className="text-base sm:text-lg lg:text-xl text-golden-100 mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
+            <p className="text-golden-100 mb-6 sm:mb-8 max-w-2xl mx-auto">
               Browse our complete collection of premium products and discover 
               the authentic taste of Ghanaian craftsmanship.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
               <Link 
                 to="/products" 
-                className="btn bg-white text-golden-600 hover:bg-gray-100 text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3"
+                className="btn btn-lg bg-white text-golden-600 hover:bg-gray-100"
               >
                 Shop Now
               </Link>
               <Link 
                 to="/contact" 
-                className="btn border-2 border-white text-white hover:bg-white hover:text-golden-600 text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3"
+                className="btn btn-lg border-2 border-white text-white hover:bg-white hover:text-golden-600"
               >
                 Get in Touch
               </Link>

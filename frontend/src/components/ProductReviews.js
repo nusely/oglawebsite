@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FiStar, FiUser, FiCalendar, FiThumbsUp } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -196,17 +196,17 @@ const ProductReviews = ({ productId, onAddReview }) => {
       )}
 
       {/* Reviews Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h3 className="text-2xl font-bold text-gray-900">Customer Reviews</h3>
-          <div className="flex items-center space-x-4 mt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
             <div className="flex items-center space-x-2">
               <StarRating rating={Math.round(averageRating)} size="lg" />
               <span className="text-lg font-semibold text-gray-900">
                 {averageRating.toFixed(1)}
               </span>
             </div>
-            <span className="text-gray-600">
+            <span className="text-gray-600 text-sm">
               Based on {reviews.length} review{reviews.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -214,7 +214,7 @@ const ProductReviews = ({ productId, onAddReview }) => {
         
         <button
           onClick={() => setShowReviewForm(true)}
-          className="btn btn-primary"
+          className="btn btn-primary w-full sm:w-auto"
         >
           Write a Review
         </button>
@@ -249,88 +249,118 @@ const ProductReviews = ({ productId, onAddReview }) => {
         </div>
       </div>
 
-      {/* Review Form */}
-      {showReviewForm && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="bg-white border border-gray-200 rounded-lg p-6"
-        >
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">Write Your Review</h4>
-          <form onSubmit={handleSubmitReview} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rating
-              </label>
-              <StarRating
-                rating={newReview.rating}
-                interactive={true}
-                onRatingChange={(rating) => setNewReview({ ...newReview, rating })}
-              />
-            </div>
+      {/* Review Form Modal */}
+      <AnimatePresence>
+        {showReviewForm && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 z-50"
+              onClick={() => setShowReviewForm(false)}
+            />
             
-            {!user && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Name
-                </label>
-                <input
-                  type="text"
-                  value={newReview.name}
-                  onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
-                  required
-                />
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-4 z-50 overflow-y-auto"
+            >
+              <div className="flex min-h-full items-center justify-center p-4">
+                <div className="relative w-full max-w-md bg-white rounded-lg shadow-xl">
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h4 className="text-lg font-semibold text-gray-900">Write Your Review</h4>
+                    <button
+                      onClick={() => setShowReviewForm(false)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {/* Modal Body */}
+                  <form onSubmit={handleSubmitReview} className="p-6 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Rating
+                      </label>
+                      <StarRating
+                        rating={newReview.rating}
+                        interactive={true}
+                        onRatingChange={(rating) => setNewReview({ ...newReview, rating })}
+                      />
+                    </div>
+                    
+                    {!user && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Your Name
+                        </label>
+                        <input
+                          type="text"
+                          value={newReview.name}
+                          onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
+                          required
+                        />
+                      </div>
+                    )}
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Review Title
+                      </label>
+                      <input
+                        type="text"
+                        value={newReview.title}
+                        onChange={(e) => setNewReview({ ...newReview, title: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Your Review
+                      </label>
+                      <textarea
+                        value={newReview.comment}
+                        onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                        rows={4}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="flex space-x-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowReviewForm(false)}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="flex-1 px-4 py-2 bg-golden-600 text-white rounded-md hover:bg-golden-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {submitting ? 'Submitting...' : 'Submit Review'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
-            )}
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Review Title
-              </label>
-              <input
-                type="text"
-                value={newReview.title}
-                onChange={(e) => setNewReview({ ...newReview, title: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Review
-              </label>
-              <textarea
-                value={newReview.comment}
-                onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
-                required
-              />
-            </div>
-            
-            <div className="flex space-x-3">
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={submitting}
-              >
-                {submitting ? 'Submitting...' : 'Submit Review'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowReviewForm(false)}
-                className="btn btn-secondary"
-                disabled={submitting}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Reviews List */}
       <div className="space-y-6">

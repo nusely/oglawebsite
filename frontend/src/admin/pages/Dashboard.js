@@ -6,6 +6,7 @@ import {
   DocumentTextIcon,
   UsersIcon,
   ClipboardDocumentListIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 import api from "../../services/api";
 
@@ -15,6 +16,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -23,49 +25,54 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
 
       // Fetch stats from backend
-      const [productsRes, storiesRes, usersRes, requestsRes] =
+      const [dashboardStatsRes, storiesRes, activitiesRes] =
         await Promise.all([
-          api.get("/products"),
+          api.get("/dashboard/stats"),
           api.get("/stories/admin/all"),
-          api.get("/users"),
-          api.get("/requests"),
+          api.get("/activities?limit=10"), // Fetch recent activities
         ]);
+
+      // Use dynamic stats from dashboard API
+      const dashboardData = dashboardStatsRes.data.data;
+      
+      const formatPercentageChange = (percent) => {
+        if (percent === 0) return "0%";
+        return percent > 0 ? `+${percent}%` : `${percent}%`;
+      };
 
       const statsData = [
         {
           name: "Total Products",
-          value: productsRes.data.data?.products?.length?.toString() || "0",
-          change: "+12%",
-          changeType: "positive",
+          value: dashboardData.products.total.toString(),
+          change: formatPercentageChange(dashboardData.products.growthPercent),
+          changeType: dashboardData.products.growthPercent >= 0 ? "positive" : "negative",
           icon: CubeIcon,
           color: "bg-blue-500",
         },
         {
           name: "Total Stories",
           value: storiesRes.data.data?.stories?.length?.toString() || "0",
-          change: "+3%",
-          changeType: "positive",
+          change: "0%", // Stories don't have growth tracking yet
+          changeType: "neutral",
           icon: DocumentTextIcon,
           color: "bg-green-500",
         },
         {
           name: "Total Users",
-          value: usersRes.data.data?.users?.length?.toString() || "0",
-          change: "+8%",
-          changeType: "positive",
+          value: dashboardData.users.total.toString(),
+          change: formatPercentageChange(dashboardData.users.growthPercent),
+          changeType: dashboardData.users.growthPercent >= 0 ? "positive" : "negative",
           icon: UsersIcon,
           color: "bg-purple-500",
         },
         {
           name: "Pending Requests",
-          value:
-            requestsRes.data.data?.requests
-              ?.filter((req) => req.status === "pending")
-              ?.length?.toString() || "0",
-          change: "-2%",
-          changeType: "negative",
+          value: dashboardData.requests.total.toString(),
+          change: formatPercentageChange(dashboardData.requests.growthPercent),
+          changeType: dashboardData.requests.growthPercent >= 0 ? "positive" : "negative",
           icon: ClipboardDocumentListIcon,
           color: "bg-orange-500",
         },
@@ -73,126 +80,59 @@ const Dashboard = () => {
 
       setStats(statsData);
 
-      // Generate recent activities from the data
-      const activities = [];
+      // Use real activities from the API
+      if (activitiesRes.data?.activities?.length > 0) {
+        const formattedActivities = activitiesRes.data.activities.map(activity => {
+          // Convert timestamp to relative time
+          const activityTime = new Date(activity.createdAt);
+          const now = new Date();
+          const diffInMinutes = Math.floor((now - activityTime) / (1000 * 60));
+          
+          let timeString;
+          if (diffInMinutes < 60) {
+            timeString = `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
+          } else if (diffInMinutes < 1440) {
+            const hours = Math.floor(diffInMinutes / 60);
+            timeString = `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+          } else {
+            const days = Math.floor(diffInMinutes / 1440);
+            timeString = `${days} day${days !== 1 ? 's' : ''} ago`;
+          }
 
-      // Add recent products
-      if (productsRes.data.data?.products?.length > 0) {
-        const recentProduct = productsRes.data.data.products[0];
-        activities.push({
-          id: 1,
-          type: "product",
-          message: `Product "${recentProduct.name}" added`,
-          time: "2 hours ago",
-          user: "Admin User",
+          // Format activity message based on action
+          let message = activity.details || activity.action;
+          if (activity.action === 'user_login') {
+            message = `User logged in`;
+          } else if (activity.action === 'user_registered') {
+            message = `New user registration`;
+          } else if (activity.action === 'product_created') {
+            message = `Product created`;
+          } else if (activity.action === 'request_created') {
+            message = `New request submitted`;
+          } else if (activity.action === 'brand_featured_product_added') {
+            message = `Featured product added`;
+          }
+
+          return {
+            id: activity.id,
+            type: activity.entityType,
+            message: message,
+            time: timeString,
+            user: activity.user || 'System',
+          };
         });
+        
+        setRecentActivities(formattedActivities);
+      } else {
+        setRecentActivities([]);
       }
-
-      // Add recent users
-      if (usersRes.data.data?.users?.length > 0) {
-        const recentUser = usersRes.data.data.users[0];
-        activities.push({
-          id: 2,
-          type: "user",
-          message: `New user registration: ${recentUser.email}`,
-          time: "4 hours ago",
-          user: "System",
-        });
-      }
-
-      // Add recent requests
-      if (requestsRes.data.data?.requests?.length > 0) {
-        const recentRequest = requestsRes.data.data.requests[0];
-        activities.push({
-          id: 3,
-          type: "request",
-          message: `New request submitted: REQ-${recentRequest.id}`,
-          time: "6 hours ago",
-          user: "Customer",
-        });
-      }
-
-      // Add recent stories
-      if (storiesRes.data.data?.stories?.length > 0) {
-        const recentStory = storiesRes.data.data.stories[0];
-        activities.push({
-          id: 4,
-          type: "story",
-          message: `Story "${recentStory.title}" published`,
-          time: "1 day ago",
-          user: "Admin User",
-        });
-      }
-
-      setRecentActivities(activities);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      // Fallback to mock data if API fails
-      setStats([
-        {
-          name: "Total Products",
-          value: "24",
-          change: "+12%",
-          changeType: "positive",
-          icon: CubeIcon,
-          color: "bg-blue-500",
-        },
-        {
-          name: "Total Stories",
-          value: "8",
-          change: "+3%",
-          changeType: "positive",
-          icon: DocumentTextIcon,
-          color: "bg-green-500",
-        },
-        {
-          name: "Total Users",
-          value: "156",
-          change: "+8%",
-          changeType: "positive",
-          icon: UsersIcon,
-          color: "bg-purple-500",
-        },
-        {
-          name: "Pending Requests",
-          value: "12",
-          change: "-2%",
-          changeType: "negative",
-          icon: ClipboardDocumentListIcon,
-          color: "bg-orange-500",
-        },
-      ]);
-
-      setRecentActivities([
-        {
-          id: 1,
-          type: "product",
-          message: 'New product "Pure Shea Butter" added',
-          time: "2 hours ago",
-          user: "Admin User",
-        },
-        {
-          id: 2,
-          type: "user",
-          message: "New user registration: john@example.com",
-          time: "4 hours ago",
-          user: "System",
-        },
-        {
-          id: 3,
-          type: "request",
-          message: "New request submitted: REQ-2024-001",
-          time: "6 hours ago",
-          user: "Customer",
-        },
-        {
-          id: 4,
-          type: "story",
-          message: 'Story "Benefits of Shea Butter" published',
-          time: "1 day ago",
-          user: "Admin User",
-        },
-      ]);
+      setError("Failed to load dashboard data. Please check your connection and try again.");
+      
+      // Set empty arrays instead of mock data
+      setStats([]);
+      setRecentActivities([]);
     } finally {
       setLoading(false);
     }
@@ -227,7 +167,30 @@ const Dashboard = () => {
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-golden-600"></div>
-          <span className="ml-3 text-gray-600">Loading dashboard data...</span>
+          <span className="ml-3 text-gray-600">Loading dashboard data from database...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">Welcome to the Ogla Admin Dashboard</p>
+        </div>
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <div className="text-center">
+            <div className="text-red-600 text-lg font-medium">{error}</div>
+            <p className="text-gray-500 mt-2">All data comes from the database - no mock data used.</p>
+          </div>
+          <button
+            onClick={fetchDashboardData}
+            className="px-4 py-2 bg-golden-600 text-white rounded-lg hover:bg-golden-700 transition-colors"
+          >
+            Retry Loading Data
+          </button>
         </div>
       </div>
     );
@@ -291,7 +254,9 @@ const Dashboard = () => {
                   className={`text-sm font-medium ${
                     stat.changeType === "positive"
                       ? "text-green-600"
-                      : "text-red-600"
+                      : stat.changeType === "negative"
+                      ? "text-red-600"
+                      : "text-gray-600"
                   }`}
                 >
                   {stat.change}
@@ -410,20 +375,20 @@ const Dashboard = () => {
                   View Requests
                 </p>
               </button>
-              {/* Activities card for admin and super_admin */}
-              {(user?.role === "admin" || user?.role === "super_admin") && (
+              {/* Activities card for super_admin only */}
+              {user?.role === "super_admin" && (
                 <button
                   onClick={() => navigate("/admin/activities")}
                   className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
                 >
-                  <ClipboardDocumentListIcon className="w-8 h-8 text-indigo-600 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                  <ClockIcon className="w-8 h-8 text-indigo-600 mx-auto mb-2 group-hover:scale-110 transition-transform" />
                   <p className="text-sm font-medium text-gray-900">
                     Activities
                   </p>
                 </button>
               )}
-              {/* Featured Products card only for super_admin */}
-              {user?.role === "super_admin" && (
+              {/* Featured Products card for both admin and super_admin */}
+              {(user?.role === "admin" || user?.role === "super_admin") && (
                 <button
                   onClick={() => navigate("/admin/brand-featured-products")}
                   className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
@@ -437,6 +402,13 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Data Source Indicator */}
+      <div className="text-center py-4">
+        <p className="text-sm text-gray-500">
+          📊 All dashboard data is dynamically loaded from the database - no mock data used
+        </p>
       </div>
     </div>
   );

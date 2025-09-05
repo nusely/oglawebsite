@@ -2,7 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FiUsers, FiHeart, FiFeather, FiTarget, FiAward, FiTrendingUp, FiArrowRight, FiMapPin, FiPhone, FiMail } from 'react-icons/fi';
-import PartnersSection from '../components/PartnersSection';
+import AdvancedSEO from '../components/AdvancedSEO';
+import { generateBreadcrumbs, generateFAQStructuredData } from '../utils/seoUtils';
 
 const About = () => {
   const missionAreas = [
@@ -35,8 +36,33 @@ const About = () => {
     { number: "24/7", label: "Community Support", icon: <FiHeart className="w-6 h-6" /> }
   ];
 
+  // FAQ data for structured data
+  const faqs = [
+    {
+      question: "What is Ogla Shea Butter & General Trading?",
+      answer: "We are a premium B2B trading company specializing in authentic Ghanaian products including shea butter, African textiles, and business solutions. We operate three distinct brands: La Veeda (skincare), AfriSmocks (fashion), and OgriBusiness (agricultural solutions)."
+    },
+    {
+      question: "Where are your products sourced from?",
+      answer: "Our products are sourced directly from local communities in Northern Ghana, particularly the Lawra region. We work closely with local producers to ensure authentic, high-quality products while supporting sustainable community development."
+    },
+    {
+      question: "What makes your shea butter special?",
+      answer: "Our shea butter is 100% natural, unrefined, and traditionally processed. It's sourced from the finest shea nuts in Northern Ghana and processed using traditional methods that preserve its natural properties and benefits."
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-white">
+      <AdvancedSEO 
+        title="About Us - Premium African Products from Ghana"
+        description="Learn about Ogla Shea Butter & General Trading. We're committed to bringing you authentic Ghanaian products while supporting local communities. Discover our story, mission, and values."
+        keywords="about ogla, Ghana shea butter, African products, community support, sustainable sourcing, La Veeda, AfriSmocks, OgriBusiness, traditional craftsmanship, B2B trading"
+        image="/images/about-hero.jpg"
+        type="website"
+        breadcrumbs={generateBreadcrumbs('/about', 'About Us')}
+        structuredData={generateFAQStructuredData(faqs)}
+      />
       {/* Hero Section with Truck Image */}
       <section className="relative h-screen overflow-hidden">
         {/* Background Image */}
@@ -52,31 +78,31 @@ const About = () => {
 
         {/* Content */}
         <div className="relative z-10 h-full flex items-center">
-          <div className="container mx-auto px-4">
+          <div className="container">
             <div className="max-w-4xl">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
               >
-                <h1 className="text-5xl lg:text-7xl font-bold text-white font-serif mb-6 leading-tight">
+                <h1 className="text-white font-serif mb-6 leading-tight">
                   About Ogla Shea Butter & Trading
                 </h1>
-                <p className="text-xl lg:text-2xl text-white/90 mb-8 max-w-3xl leading-relaxed">
+                <p className="text-white/90 mb-8 max-w-3xl leading-relaxed">
                   More than just a brand; we're a beacon of empowerment and opportunity in the heart of Ghana. 
                   Founded with a vision to uplift and support rural communities, especially women.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link 
                     to="/products" 
-                    className="bg-golden-600 text-white px-8 py-4 rounded-full font-semibold hover:bg-golden-700 transition-colors duration-300 inline-flex items-center justify-center text-lg"
+                    className="btn btn-xl bg-golden-600 text-white hover:bg-golden-700 inline-flex items-center justify-center"
                   >
                     Explore Our Products
                     <FiArrowRight className="ml-2" />
                   </Link>
                   <Link 
                     to="/contact" 
-                    className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold hover:bg-white hover:text-gray-900 transition-colors duration-300 inline-flex items-center justify-center text-lg"
+                    className="btn btn-xl border-2 border-white text-white hover:bg-white hover:text-gray-900 inline-flex items-center justify-center"
                   >
                     Get in Touch
                   </Link>
@@ -104,8 +130,8 @@ const About = () => {
       </section>
 
       {/* Mission Statement */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-4">
+      <section className="section-padding bg-white">
+        <div className="container">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -115,10 +141,10 @@ const About = () => {
             <div className="inline-flex items-center justify-center w-20 h-20 bg-golden-100 rounded-full mb-8">
               <FiHeart className="w-10 h-10 text-golden-600" />
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 font-serif mb-8">
+            <h2 className="text-gray-900 font-serif mb-8">
               Our Mission
             </h2>
-            <p className="text-xl text-gray-600 leading-relaxed mb-12 max-w-4xl mx-auto">
+            <p className="text-gray-600 leading-relaxed mb-12 max-w-4xl mx-auto">
               Through strategic partnerships with donors and supporters who share our vision, 
               we continue to expand our reach and impact, creating opportunities for growth 
               and prosperity in the communities we serve. Together, we are building a brighter 
@@ -129,9 +155,9 @@ const About = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-gradient-to-br from-golden-600 to-golden-700">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+      <section className="section-padding bg-gradient-to-br from-golden-600 to-golden-700">
+        <div className="container">
+          <div className="grid grid-cols-2 lg:grid-cols-4 grid-gap">
             {stats.map((stat, index) => (
               <motion.div
                 key={index}
@@ -160,23 +186,23 @@ const About = () => {
       </section>
 
       {/* Mission Areas */}
-      <section className="py-24 bg-gray-50">
-        <div className="container mx-auto px-4">
+      <section className="section-padding bg-gray-50">
+        <div className="container">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 font-serif mb-6">
+            <h2 className="text-gray-900 font-serif mb-6">
               Our Core Focus Areas
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-gray-600 max-w-3xl mx-auto">
               We foster economic development and social progress through sustainable business practices and community initiatives.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 grid-gap max-w-7xl mx-auto">
             {missionAreas.map((area, index) => (
               <motion.div
                 key={index}
@@ -262,28 +288,55 @@ const About = () => {
         </div>
       </section>
 
-      {/* Partners Section */}
-      <PartnersSection />
+      {/* Parallax Section */}
+      <section className="relative h-96 overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-fixed"
+          style={{
+            backgroundImage: 'url(https://res.cloudinary.com/dpznya3mz/image/upload/v1757096169/pexels-zeal-creative-studios-58866141-33697675_b4hn1f.jpg)',
+            transform: 'translateZ(0)',
+            willChange: 'transform'
+          }}
+        />
+        <div className="absolute inset-0 bg-black bg-opacity-50" />
+        <div className="relative z-10 h-full flex items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center text-white px-4"
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+              Our Story & Mission
+            </h2>
+            <p className="text-lg sm:text-xl max-w-2xl mx-auto">
+              Rooted in tradition, driven by innovation. We're committed to bringing you 
+              authentic Ghanaian products while supporting local communities and preserving cultural heritage.
+            </p>
+          </motion.div>
+        </div>
+      </section>
 
              {/* Impact & Future Section */}
-       <section className="py-24 bg-gradient-to-br from-golden-600 to-golden-700">
-         <div className="container mx-auto px-4">
+       <section className="section-padding bg-gradient-to-br from-golden-600 to-golden-700">
+         <div className="container">
            <motion.div
              initial={{ opacity: 0, y: 30 }}
              whileInView={{ opacity: 1, y: 0 }}
              transition={{ duration: 0.8 }}
              className="text-center max-w-5xl mx-auto"
            >
-             <h2 className="text-4xl lg:text-5xl font-bold text-white font-serif mb-8">
+             <h2 className="text-white font-serif mb-8">
                Building a Brighter Future Together
              </h2>
-             <p className="text-xl text-golden-100 mb-12 max-w-4xl mx-auto leading-relaxed">
+             <p className="text-golden-100 mb-12 max-w-4xl mx-auto leading-relaxed">
                Every product you choose from Ogla Shea Butter & Trading directly supports our mission 
                of empowering rural communities and preserving Ghanaian heritage. Together, we're creating 
                sustainable economic opportunities that benefit generations to come.
              </p>
              
-             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-12">
+             <div className="grid grid-cols-2 md:grid-cols-3 grid-gap mb-12">
                <motion.div
                  initial={{ opacity: 0, y: 20 }}
                  whileInView={{ opacity: 1, y: 0 }}
@@ -333,14 +386,14 @@ const About = () => {
              <div className="flex flex-col sm:flex-row gap-4 justify-center">
                <Link 
                  to="/products" 
-                 className="bg-white text-golden-600 px-8 py-4 rounded-full font-semibold hover:bg-golden-50 transition-colors duration-300 inline-flex items-center justify-center text-lg"
+                 className="btn btn-xl bg-white text-golden-600 hover:bg-golden-50 inline-flex items-center justify-center"
                >
                  Explore Our Products
                  <FiArrowRight className="ml-2" />
                </Link>
                <Link 
                  to="/contact" 
-                 className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold hover:bg-white hover:text-golden-600 transition-colors duration-300 inline-flex items-center justify-center text-lg"
+                 className="btn btn-xl border-2 border-white text-white hover:bg-white hover:text-golden-600 inline-flex items-center justify-center"
                >
                  Contact Us
                </Link>

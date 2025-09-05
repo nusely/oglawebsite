@@ -96,8 +96,8 @@ const AfriSmocksProductShowcase = ({ products, brandColors }) => {
             >
               <FiStar className="w-8 h-8" style={{ color: brandColors?.primary }} />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Authentic Kente</h3>
-            <p className="text-gray-600">Genuine Kente patterns with deep cultural significance</p>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Authentic smocks</h3>
+            <p className="text-gray-600">Genuine smocks with deep cultural significance</p>
           </div>
           
           <div className="text-center">

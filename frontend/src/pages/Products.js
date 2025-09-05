@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { FiFilter } from 'react-icons/fi';
-import SEOHead from '../components/SEOHead';
+import AdvancedSEO from '../components/AdvancedSEO';
+import { generateBreadcrumbs } from '../utils/seoUtils';
 import SearchBar from '../components/SearchBar';
 import FilterTags from '../components/FilterTags';
 import SearchResults from '../components/SearchResults';
@@ -28,15 +29,15 @@ const Products = () => {
     // This will trigger the SearchResults component to reset to page 1
   }, [searchQuery, filters]);
 
-  const handleSearch = (query) => {
+  const handleSearch = useCallback((query) => {
     setSearchQuery(query);
-  };
+  }, []);
 
-  const handleFilterChange = (newFilters) => {
+  const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
-  };
+  }, []);
 
-  const handleRemoveFilter = (filterType, filterValue) => {
+  const handleRemoveFilter = useCallback((filterType, filterValue) => {
     const newFilters = { ...filters };
     
     if (filterType === 'brand') {
@@ -48,9 +49,9 @@ const Products = () => {
     }
     
     setFilters(newFilters);
-  };
+  }, [filters]);
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setFilters({
       brand: '',
       category: '',
@@ -58,33 +59,37 @@ const Products = () => {
       inStock: false,
       featured: false
     });
-  };
+  }, []);
 
-  // Filter products based on search and filters
-  const filteredProducts = searchProducts(searchQuery, {
-    brandId: filters.brand,
-    category: filters.category,
-    priceRange: filters.priceRange,
-    inStock: filters.inStock,
-    featured: filters.featured
-  });
+  // Filter products based on search and filters - memoized to prevent unnecessary recalculations
+  const filteredProducts = useMemo(() => 
+    searchProducts(searchQuery, {
+      brandId: filters.brand,
+      category: filters.category,
+      priceRange: filters.priceRange,
+      inStock: filters.inStock,
+      featured: filters.featured
+    }),
+    [searchQuery, filters.brand, filters.category, filters.priceRange.min, filters.priceRange.max, filters.inStock, filters.featured]
+  );
 
   if (loading) {
     return (
       <>
-        <SEOHead 
+        <AdvancedSEO 
           title="All Products - Shea Butter, Textiles & Business Solutions"
           description="Browse our complete collection of premium shea butter products, authentic African textiles, and innovative business solutions. Find the perfect products for your business needs."
-          keywords="shea butter products, African textiles, business solutions, wholesale products, La Veeda, AfriSmocks, OgriBusiness, Ghana products, B2B trading"
+          keywords="shea butter products, African textiles, business solutions, wholesale products, La Veeda, AfriSmocks, OgriBusiness, Ghana products, B2B trading, natural skincare, traditional crafts"
           image="/images/products-hero.jpg"
           type="website"
+          breadcrumbs={generateBreadcrumbs('/products', 'All Products')}
         />
         
-        <div className="min-h-screen bg-gray-50 py-12">
+        <div className="min-h-screen bg-gray-50 section-padding">
           <div className="container">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">Our Products</h1>
-              <p className="text-xl text-gray-600">
+              <h1 className="text-gray-900 mb-4">Our Products</h1>
+              <p className="text-gray-600">
                 Discover our complete collection of premium African products
               </p>
             </div>
@@ -97,20 +102,21 @@ const Products = () => {
 
   return (
     <>
-      <SEOHead 
+      <AdvancedSEO 
         title="All Products - Shea Butter, Textiles & Business Solutions"
         description="Browse our complete collection of premium shea butter products, authentic African textiles, and innovative business solutions. Find the perfect products for your business needs."
-        keywords="shea butter products, African textiles, business solutions, wholesale products, La Veeda, AfriSmocks, OgriBusiness, Ghana products, B2B trading"
+        keywords="shea butter products, African textiles, business solutions, wholesale products, La Veeda, AfriSmocks, OgriBusiness, Ghana products, B2B trading, natural skincare, traditional crafts"
         image="/images/products-hero.jpg"
         type="website"
+        breadcrumbs={generateBreadcrumbs('/products', 'All Products')}
       />
       
-      <div className="min-h-screen bg-gray-50 py-12">
+      <div className="min-h-screen bg-gray-50 section-padding">
         <div className="container">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Our Products</h1>
-            <p className="text-xl text-gray-600">
+            <h1 className="text-gray-900 mb-4">Our Products</h1>
+            <p className="text-gray-600">
               Discover our complete collection of premium African products
             </p>
           </div>
@@ -127,7 +133,7 @@ const Products = () => {
           </div>
 
           {/* Main Content with Sidebar */}
-          <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex flex-col lg:flex-row grid-gap">
             {/* Sidebar */}
             <ProductSidebar
               filters={filters}
@@ -160,6 +166,7 @@ const Products = () => {
 
               {/* Search Results with Enhanced Pagination */}
               <SearchResults 
+                key={`${searchQuery}-${JSON.stringify(filters)}`}
                 products={filteredProducts}
                 searchTerm={searchQuery}
                 filters={filters}

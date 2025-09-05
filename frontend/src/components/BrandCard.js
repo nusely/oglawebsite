@@ -16,7 +16,7 @@ const BrandCard = ({ brand }) => {
     switch (brandSlug) {
       case 'la-veeda':
         return {
-          backgroundImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651322/ogla/static/la-veeda-card.webp/la-veeda-card.png',
+          backgroundImage: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1757065620/la-veeda-sheabutter-card_btey6a.webp',
           icon: 'https://res.cloudinary.com/dpznya3mz/image/upload/v1756651327/ogla/static/la-veeda-icon.png/la-veeda-icon.png',
           overlayColor: '#1b4332', // Dark green for La Veeda
           brandColors: {

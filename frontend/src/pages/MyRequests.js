@@ -1,29 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { FiFileText, FiDownload, FiEye, FiClock, FiCheckCircle, FiXCircle, FiAlertCircle, FiLogIn } from 'react-icons/fi';
-import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import {
+  FiFileText,
+  FiDownload,
+  FiEye,
+  FiClock,
+  FiCheckCircle,
+  FiXCircle,
+  FiAlertCircle,
+} from "react-icons/fi";
+import { useAuth } from "../contexts/AuthContext";
+import api from "../services/api";
+import invoiceGenerator from "../utils/invoiceGenerator";
 
 const MyRequests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
-  
-  const { isAuthenticated, user } = useAuth();
+
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Check authentication on mount
   useEffect(() => {
     if (!isAuthenticated) {
       // Redirect to login with return path
-      navigate('/login', { 
-        state: { 
-          returnTo: '/my-requests',
-          message: 'Please sign in to view your requests'
-        } 
+      navigate("/login", {
+        state: {
+          returnTo: "/my-requests",
+          message: "Please sign in to view your requests",
+        },
       });
       return;
     }
@@ -32,19 +40,19 @@ const MyRequests = () => {
   useEffect(() => {
     // Only load requests if authenticated
     if (!isAuthenticated) return;
-    
+
     const loadRequests = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/requests/my-requests');
+        const response = await api.get("/requests/my-requests");
         if (response.data.success) {
           setRequests(response.data.data || []);
         } else {
-          console.error('Failed to load requests:', response.data.message);
+          console.error("Failed to load requests:", response.data.message);
           setRequests([]);
         }
       } catch (error) {
-        console.error('Error loading requests:', error);
+        console.error("Error loading requests:", error);
         setRequests([]);
       } finally {
         setLoading(false);
@@ -56,28 +64,28 @@ const MyRequests = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'approved':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'rejected':
-        return 'text-red-600 bg-red-50 border-red-200';
-      case 'processing':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
+      case "pending":
+        return "text-yellow-600 bg-yellow-50 border-yellow-200";
+      case "approved":
+        return "text-green-600 bg-green-50 border-green-200";
+      case "rejected":
+        return "text-red-600 bg-red-50 border-red-200";
+      case "processing":
+        return "text-blue-600 bg-blue-50 border-blue-200";
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return "text-gray-600 bg-gray-50 border-gray-200";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'pending':
+      case "pending":
         return <FiClock className="h-4 w-4" />;
-      case 'approved':
+      case "approved":
         return <FiCheckCircle className="h-4 w-4" />;
-      case 'rejected':
+      case "rejected":
         return <FiXCircle className="h-4 w-4" />;
-      case 'processing':
+      case "processing":
         return <FiAlertCircle className="h-4 w-4" />;
       default:
         return <FiClock className="h-4 w-4" />;
@@ -85,19 +93,19 @@ const MyRequests = () => {
   };
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-GH', {
-      style: 'currency',
-      currency: 'GHS'
+    return new Intl.NumberFormat("en-GH", {
+      style: "currency",
+      currency: "GHS",
     }).format(price);
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-GH', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-GH", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -106,10 +114,48 @@ const MyRequests = () => {
     setShowDetails(true);
   };
 
-  const handleDownloadInvoice = (invoiceNumber) => {
-    // In a real implementation, this would download the PDF
-    console.log('Downloading invoice:', invoiceNumber);
-    alert(`Downloading Proforma Invoice ${invoiceNumber}`);
+  const handleDownloadInvoice = async (invoiceNumber) => {
+    try {
+      // Find the request data for this invoice number
+      const request = requests.find(r => r.requestNumber === invoiceNumber);
+      if (!request) {
+        alert("Request data not found. Please refresh the page and try again.");
+        return;
+      }
+
+      // Get request data (already parsed by backend)
+      const items = request.items || [];
+      const customerData = request.customerData || null;
+
+      // Prepare invoice data for frontend generator
+      const invoiceData = {
+        invoiceNumber: request.requestNumber,
+        customer: customerData || {
+          firstName: request.customerName?.split(' ')[0] || 'Unknown',
+          lastName: request.customerName?.split(' ').slice(1).join(' ') || 'User',
+          email: request.customerEmail || 'Not provided',
+          phone: request.customerPhone || 'Not provided',
+          companyName: request.companyName || 'Not provided',
+          companyType: 'Not specified',
+          companyRole: 'Not specified'
+        },
+        items: items.map(item => ({
+          name: item.name || `Product ${item.productId}`,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        totalAmount: request.totalAmount,
+        submittedAt: request.createdAt,
+        status: request.status
+      };
+
+      // Use frontend invoice generator
+      await invoiceGenerator.generateProformaInvoice(invoiceData, false);
+      
+    } catch (error) {
+      console.error("Failed to download invoice PDF:", error);
+      alert("Failed to download invoice PDF. Please try again.");
+    }
   };
 
   const handleCloseDetails = () => {
@@ -139,8 +185,12 @@ const MyRequests = () => {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">My Requests</h1>
-            <p className="text-lg text-gray-600">Track your product requests and invoices</p>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              My Requests
+            </h1>
+            <p className="text-lg text-gray-600">
+              Track your product requests and invoices
+            </p>
           </div>
 
           {/* Requests List */}
@@ -153,10 +203,14 @@ const MyRequests = () => {
             ) : requests.length === 0 ? (
               <div className="p-8 text-center">
                 <FiFileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No requests yet</h3>
-                <p className="text-gray-600 mb-6">You haven't submitted any product requests yet.</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No requests yet
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  You haven't submitted any product requests yet.
+                </p>
                 <button
-                  onClick={() => navigate('/request-basket')}
+                  onClick={() => navigate("/request-basket")}
                   className="bg-golden-600 text-white px-6 py-3 rounded-lg hover:bg-golden-700 transition-colors"
                 >
                   Submit Your First Request
@@ -200,17 +254,21 @@ const MyRequests = () => {
                             {request.requestNumber || `Request #${request.id}`}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {request.customerName || 'Customer'}
+                            {request.customerName || "Customer"}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {Array.isArray(request.items) ? request.items.length : 0} items
+                            {Array.isArray(request.items)
+                              ? request.items.length
+                              : 0}{" "}
+                            items
                           </div>
                           <div className="text-sm text-gray-500">
-                            {Array.isArray(request.items) && request.items.length > 0 
-                              ? request.items[0].name 
-                              : 'No items'}
+                            {Array.isArray(request.items) &&
+                            request.items.length > 0
+                              ? request.items[0].name
+                              : "No items"}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -219,10 +277,14 @@ const MyRequests = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(request.status || 'pending')}`}>
-                            {getStatusIcon(request.status || 'pending')}
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
+                              request.status || "pending"
+                            )}`}
+                          >
+                            {getStatusIcon(request.status || "pending")}
                             <span className="ml-1.5 capitalize">
-                              {request.status || 'pending'}
+                              {request.status || "pending"}
                             </span>
                           </span>
                         </td>
@@ -238,15 +300,15 @@ const MyRequests = () => {
                               <FiEye className="h-4 w-4 mr-1" />
                               View
                             </button>
-                            {request.pdfMetadata?.generated && (
-                              <button
-                                onClick={() => handleDownloadInvoice(request.requestNumber)}
-                                className="text-green-600 hover:text-green-900 flex items-center"
-                              >
-                                <FiDownload className="h-4 w-4 mr-1" />
-                                Invoice
-                              </button>
-                            )}
+                            <button
+                              onClick={() =>
+                                handleDownloadInvoice(request.requestNumber)
+                              }
+                              className="text-green-600 hover:text-green-900 flex items-center"
+                            >
+                              <FiDownload className="h-4 w-4 mr-1" />
+                              Download
+                            </button>
                           </div>
                         </td>
                       </motion.tr>
@@ -283,7 +345,8 @@ const MyRequests = () => {
                       Request Details
                     </h2>
                     <p className="text-gray-600">
-                      {selectedRequest.requestNumber || `Request #${selectedRequest.id}`}
+                      {selectedRequest.requestNumber ||
+                        `Request #${selectedRequest.id}`}
                     </p>
                   </div>
                   <button
@@ -297,14 +360,20 @@ const MyRequests = () => {
                 {/* Request Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">Request Information</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">
+                      Request Information
+                    </h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Status:</span>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(selectedRequest.status || 'pending')}`}>
-                          {getStatusIcon(selectedRequest.status || 'pending')}
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
+                            selectedRequest.status || "pending"
+                          )}`}
+                        >
+                          {getStatusIcon(selectedRequest.status || "pending")}
                           <span className="ml-1.5 capitalize">
-                            {selectedRequest.status || 'pending'}
+                            {selectedRequest.status || "pending"}
                           </span>
                         </span>
                       </div>
@@ -324,30 +393,32 @@ const MyRequests = () => {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">Customer Information</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">
+                      Customer Information
+                    </h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Name:</span>
                         <span className="text-gray-900">
-                          {selectedRequest.customerName || 'N/A'}
+                          {selectedRequest.customerName || "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Email:</span>
                         <span className="text-gray-900">
-                          {selectedRequest.customerEmail || 'N/A'}
+                          {selectedRequest.customerEmail || "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Phone:</span>
                         <span className="text-gray-900">
-                          {selectedRequest.customerPhone || 'N/A'}
+                          {selectedRequest.customerPhone || "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Company:</span>
                         <span className="text-gray-900">
-                          {selectedRequest.companyName || 'N/A'}
+                          {selectedRequest.companyName || "N/A"}
                         </span>
                       </div>
                     </div>
@@ -356,16 +427,25 @@ const MyRequests = () => {
 
                 {/* Items */}
                 <div className="mb-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Requested Items</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    Requested Items
+                  </h3>
                   <div className="bg-gray-50 rounded-lg p-4">
-                    {Array.isArray(selectedRequest.items) && selectedRequest.items.length > 0 ? (
+                    {Array.isArray(selectedRequest.items) &&
+                    selectedRequest.items.length > 0 ? (
                       <div className="space-y-3">
                         {selectedRequest.items.map((item, index) => (
-                          <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                          <div
+                            key={index}
+                            className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0"
+                          >
                             <div className="flex-1">
-                              <div className="font-medium text-gray-900">{item.name}</div>
+                              <div className="font-medium text-gray-900">
+                                {item.name}
+                              </div>
                               <div className="text-sm text-gray-600">
-                                Quantity: {item.quantity} × {formatPrice(item.price)}
+                                Quantity: {item.quantity} ×{" "}
+                                {formatPrice(item.price)}
                               </div>
                             </div>
                             <div className="text-right">
@@ -385,7 +465,9 @@ const MyRequests = () => {
                 {/* Notes */}
                 {selectedRequest.notes && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">Notes</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">
+                      Notes
+                    </h3>
                     <div className="bg-gray-50 rounded-lg p-4">
                       <p className="text-gray-700">{selectedRequest.notes}</p>
                     </div>
@@ -396,7 +478,9 @@ const MyRequests = () => {
                 <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                   {selectedRequest.pdfMetadata?.generated && (
                     <button
-                      onClick={() => handleDownloadInvoice(selectedRequest.requestNumber)}
+                      onClick={() =>
+                        handleDownloadInvoice(selectedRequest.requestNumber)
+                      }
                       className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
                     >
                       <FiDownload className="h-4 w-4 mr-2" />

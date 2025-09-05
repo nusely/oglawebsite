@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiFilter, FiX, FiChevronDown, FiChevronUp, FiSliders } from 'react-icons/fi';
 import { useProducts } from '../hooks/useProducts';
@@ -29,14 +29,14 @@ const ProductSidebar = ({
   const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
   const maxPrice = prices.length > 0 ? Math.max(...prices) : 10000;
 
-  const toggleSection = (section) => {
+  const toggleSection = useCallback((section) => {
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
-  };
+  }, []);
 
-  const handleFilterChange = (filterType, value) => {
+  const handleFilterChange = useCallback((filterType, value) => {
     const newFilters = { ...filters };
     
     if (filterType === 'priceRange') {
@@ -46,11 +46,11 @@ const ProductSidebar = ({
     }
     
     onFilterChange(newFilters);
-  };
+  }, [filters, onFilterChange]);
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     onClearFilters();
-  };
+  }, [onClearFilters]);
 
   const hasActiveFilters = filters.brand || filters.category || 
     filters.priceRange.min > minPrice || filters.priceRange.max < maxPrice;

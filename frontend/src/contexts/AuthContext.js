@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           // Verify token and get user data
-          const response = await fetch('http://localhost:5000/api/auth/me', {
+          const response = await fetch('http://192.168.0.123:5000/api/auth/profile', {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }) => {
           if (response.ok) {
             const data = await response.json();
             if (data.success) {
-              dispatch({ type: AUTH_ACTIONS.LOAD_USER, payload: { user: data.data.user } });
+              dispatch({ type: AUTH_ACTIONS.LOAD_USER, payload: { user: data.data } });
             } else {
               // Token invalid, remove it
               localStorage.removeItem('ogla-token');
@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }) => {
     
     try {
       // Try real API call first
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('http://192.168.0.123:5000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,7 +194,7 @@ export const AuthProvider = ({ children }) => {
     
     try {
       // Call actual registration API
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('http://192.168.0.123:5000/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

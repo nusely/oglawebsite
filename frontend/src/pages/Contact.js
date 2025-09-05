@@ -1,9 +1,76 @@
-import React from 'react';
-import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
+import React, { useState, useRef } from 'react';
+import { FiMapPin, FiPhone, FiMail, FiClock, FiSend, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import emailjs from '@emailjs/browser';
+import { EMAILJS_CONFIG } from '../config/emailjs';
+import AdvancedSEO from '../components/AdvancedSEO';
+import { generateBreadcrumbs, generateLocalBusinessStructuredData } from '../utils/seoUtils';
+import { trackContactForm } from '../utils/analytics';
 
 const Contact = () => {
+  const form = useRef();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', or null
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    try {
+      const result = await emailjs.sendForm(
+        EMAILJS_CONFIG.SERVICE_ID,
+        EMAILJS_CONFIG.TEMPLATE_ID,
+        form.current,
+        EMAILJS_CONFIG.PUBLIC_KEY
+      );
+
+      console.log('Email sent successfully:', result.text);
+      setSubmitStatus('success');
+      
+      // Track successful form submission
+      trackContactForm();
+      
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        subject: '',
+        message: ''
+      });
+    } catch (error) {
+      console.error('Error sending email:', error);
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <AdvancedSEO 
+        title="Contact Us - Get in Touch with Ogla Shea Butter"
+        description="Contact Ogla Shea Butter & General Trading for inquiries about our premium African products. Reach out for wholesale orders, partnerships, or any questions about our shea butter, textiles, and business solutions."
+        keywords="contact ogla, shea butter contact, African products inquiry, wholesale contact, B2B trading contact, Ghana business contact, La Veeda contact, AfriSmocks contact, OgriBusiness contact"
+        image="/images/contact-hero.jpg"
+        type="website"
+        breadcrumbs={generateBreadcrumbs('/contact', 'Contact Us')}
+        structuredData={generateLocalBusinessStructuredData()}
+      />
       {/* Hero Section */}
       <section className="relative h-96 lg:h-[500px] overflow-hidden">
                  {/* Background Image */}
@@ -50,13 +117,32 @@ const Contact = () => {
               {/* Contact Form */}
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a message</h2>
-                <form className="space-y-4">
+                <form ref={form} onSubmit={handleSubmit} className="space-y-4">
+                  {/* Success/Error Messages */}
+                  {submitStatus === 'success' && (
+                    <div className="bg-green-50 border border-green-200 rounded-md p-4 flex items-center">
+                      <FiCheck className="text-green-500 mr-2" />
+                      <span className="text-green-700">Message sent successfully! We'll get back to you soon.</span>
+                    </div>
+                  )}
+                  
+                  {submitStatus === 'error' && (
+                    <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-center">
+                      <FiAlertCircle className="text-red-500 mr-2" />
+                      <span className="text-red-700">Failed to send message. Please try again or contact us directly.</span>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Name
+                      Name *
                     </label>
                     <input
                       type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
                       placeholder="Your name"
                     />
@@ -64,10 +150,14 @@ const Contact = () => {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email
+                      Email *
                     </label>
                     <input
                       type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
                       placeholder="your@email.com"
                     />
@@ -75,10 +165,33 @@ const Contact = () => {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Subject
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
+                      placeholder="+1 (555) 123-4567 or +233 54 152 8841"
+                      pattern="[\+]?[0-9\s\-\(\)]{7,20}"
+                      title="Please enter a valid phone number (international format accepted)"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Optional - International formats accepted (e.g., +1 555 123 4567, +233 54 152 8841)
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Subject *
                     </label>
                     <input
                       type="text"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleInputChange}
+                      required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
                       placeholder="Subject"
                     />
@@ -86,9 +199,13 @@ const Contact = () => {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Message
+                      Message *
                     </label>
                     <textarea
+                      name="message"
+                      value={formData.message}
+                      onChange={handleInputChange}
+                      required
                       rows={4}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-golden-500"
                       placeholder="Your message..."
@@ -97,9 +214,20 @@ const Contact = () => {
                   
                   <button
                     type="submit"
-                    className="w-full btn btn-primary py-3"
+                    disabled={isSubmitting}
+                    className="w-full btn btn-primary py-3 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Send Message
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <FiSend className="mr-2" />
+                        Send Message
+                      </>
+                    )}
                   </button>
                 </form>
               </div>

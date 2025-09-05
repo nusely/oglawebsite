@@ -361,14 +361,39 @@ const Activities = () => {
           ))}
         </div>
 
-        {/* Pagination */}
+        {/* Enhanced Pagination */}
         {pagination.pages > 1 && (
           <div className="px-6 py-4 border-t border-gray-200">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Showing page {pagination.page} of {pagination.pages}
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-700">Show:</label>
+                  <select
+                    value={pagination.limit}
+                    onChange={(e) => {
+                      setPagination(prev => ({ 
+                        ...prev, 
+                        limit: Number(e.target.value),
+                        page: 1 
+                      }));
+                    }}
+                    className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <span className="text-sm text-gray-700">per page</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  Showing page <span className="font-medium">{pagination.page}</span> of{' '}
+                  <span className="font-medium">{pagination.pages}</span> 
+                  ({pagination.total} total activities)
+                </div>
               </div>
-              <div className="flex space-x-2">
+              
+              <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                   disabled={pagination.page === 1}
@@ -376,6 +401,44 @@ const Activities = () => {
                 >
                   Previous
                 </button>
+                
+                {/* Page Numbers */}
+                {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => {
+                  // Show current page, first page, last page, and pages around current
+                  if (
+                    page === 1 ||
+                    page === pagination.pages ||
+                    (page >= pagination.page - 2 && page <= pagination.page + 2)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setPagination(prev => ({ ...prev, page }))}
+                        className={`px-3 py-2 text-sm border rounded-md ${
+                          page === pagination.page
+                            ? 'bg-blue-50 border-blue-500 text-blue-600'
+                            : 'border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  } else if (
+                    page === pagination.page - 3 ||
+                    page === pagination.page + 3
+                  ) {
+                    return (
+                      <span
+                        key={page}
+                        className="px-3 py-2 text-sm text-gray-500"
+                      >
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+                
                 <button
                   onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.pages, prev.page + 1) }))}
                   disabled={pagination.page === pagination.pages}

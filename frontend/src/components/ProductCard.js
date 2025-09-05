@@ -6,6 +6,7 @@ import { useRequestBasket } from '../contexts/RequestBasketContext';
 import LazyImage from './LazyImage';
 import { getProductImage } from '../utils/imageUtils';
 import { useAuth } from '../contexts/AuthContext';
+import { trackAddToRequest } from '../utils/analytics';
 
 const ProductCard = ({ product, className = '' }) => {
   const { addToRequest, isInRequest, getItemQuantity } = useRequestBasket();
@@ -19,6 +20,11 @@ const ProductCard = ({ product, className = '' }) => {
     setIsAddingToRequest(true);
     try {
       addToRequest(product, 1);
+      
+      // Track add to request action
+      const price = getProductPrice(product);
+      trackAddToRequest(product.name, product._id || product.id, product.brandName, price);
+      
       // Show success feedback
       setTimeout(() => setIsAddingToRequest(false), 1000);
     } catch (error) {
@@ -154,41 +160,40 @@ const ProductCard = ({ product, className = '' }) => {
         )}
         
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-auto">
+        <div className="flex flex-col space-y-2 mt-auto">
+          {/* Add to Request Button - Now visible for all users */}
+          <button
+            onClick={handleAddToRequest}
+            disabled={isAddingToRequest}
+            className="w-full btn text-center text-sm sm:text-sm py-1.5 sm:py-2 text-white transition-all duration-200"
+            style={{ 
+              backgroundColor: isProductInRequest ? '#8B6914' : '#b5a033' // deep ogla gold : golden-600
+            }}
+          >
+            {isAddingToRequest ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-1 sm:mr-2"></div>
+                <span className="text-xs sm:text-sm">Adding...</span>
+              </div>
+            ) : isProductInRequest ? (
+              <div className="flex items-center justify-center">
+                <FiCheck className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm">In Request ({requestQuantity})</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center">
+                <FiPlus className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm">Add to Request</span>
+              </div>
+            )}
+          </button>
+          
           <Link 
             to={`/product/${product.slug}`}
-            className="flex-1 btn text-center text-sm sm:text-sm py-1.5 sm:py-2 bg-transparent border-2 border-golden-600 text-golden-600 hover:text-white hover:bg-golden-600 transition-all duration-200"
+            className="w-full btn text-center text-sm sm:text-sm py-1.5 sm:py-2 bg-transparent border-2 border-golden-600 text-golden-600 hover:text-white hover:bg-golden-600 transition-all duration-200"
           >
             View Details
           </Link>
-          {/* Add to Request Button - Hidden for admins */}
-          {(!user || (user.role !== 'admin' && user.role !== 'super_admin')) && (
-            <button
-              onClick={handleAddToRequest}
-              disabled={isAddingToRequest}
-              className="flex-1 btn text-center text-sm sm:text-sm py-1.5 sm:py-2 text-white transition-all duration-200"
-              style={{ 
-                backgroundColor: isProductInRequest ? '#8B6914' : '#b5a033' // deep ogla gold : golden-600
-              }}
-            >
-              {isAddingToRequest ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-1 sm:mr-2"></div>
-                  <span className="text-xs sm:text-sm">Adding...</span>
-                </div>
-              ) : isProductInRequest ? (
-                <div className="flex items-center justify-center">
-                  <FiCheck className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="text-xs sm:text-sm">In Request ({requestQuantity})</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center">
-                  <FiPlus className="mr-1 sm:mr-2 w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="text-xs sm:text-sm">Add to Request</span>
-                </div>
-              )}
-            </button>
-          )}
         </div>
       </div>
     </motion.div>

@@ -4,16 +4,25 @@ Allow: /
 # Sitemap
 Sitemap: https://oglasheabutter.com/sitemap.xml
 
-# Disallow admin and private areas
+# Disallow admin areas
 Disallow: /admin/
-Disallow: /private/
 Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /verify-email-pending
+Disallow: /request-form
+Disallow: /request-confirmation
+Disallow: /my-requests
 
 # Allow important pages
 Allow: /products
 Allow: /brands/
+Allow: /stories
 Allow: /about
 Allow: /contact
 
-# Crawl delay (optional)
+# Crawl delay
 Crawl-delay: 1

@@ -1,34 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { MagnifyingGlassIcon, EyeIcon, CheckIcon, XMarkIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import api from '../../services/api';
-import { generateProformaInvoice } from '../../utils/invoiceGenerator';
+import React, { useState, useEffect } from "react";
+import {
+  MagnifyingGlassIcon,
+  EyeIcon,
+  CheckIcon,
+  XMarkIcon,
+  ArrowDownTrayIcon,
+} from "@heroicons/react/24/outline";
+import api from "../../services/api";
+import { generateProformaInvoice } from "../../utils/invoiceGenerator";
 
 const Requests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(null);
-  
+
   // Filter states
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [guestFilter, setGuestFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [guestFilter, setGuestFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/requests/admin/all');
+      const response = await api.get("/requests/admin/all");
       setRequests(response.data.data?.requests || []);
     } catch (error) {
-      console.error('Error fetching requests:', error);
+      console.error("Error fetching requests:", error);
       setRequests([]);
       // Show user-friendly error message instead of falling back to mock data
-      alert('Failed to load requests. Please ensure the backend is running and try refreshing the page.');
+      alert(
+        "Failed to load requests. Please ensure the backend is running and try refreshing the page."
+      );
     } finally {
       setLoading(false);
     }
@@ -38,29 +50,39 @@ const Requests = () => {
     fetchRequests();
   }, []);
 
-  const filteredRequests = requests.filter(request => {
+  const filteredRequests = requests.filter((request) => {
     // Search filter
-    const searchMatch = 
-      (request.id?.toString() || '').includes(searchTerm) ||
-      (request.requestNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (request.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (request.customerEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (request.status || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
+    const searchMatch =
+      (request.id?.toString() || "").includes(searchTerm) ||
+      (request.requestNumber || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (request.customerName || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (request.customerEmail || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (request.status || "").toLowerCase().includes(searchTerm.toLowerCase());
+
     if (!searchMatch) return false;
-    
+
     // Status filter
-    if (statusFilter !== 'all' && request.status !== statusFilter) return false;
-    
+    if (statusFilter !== "all" && request.status !== statusFilter) return false;
+
     // Guest filter
-    if (guestFilter !== 'all') {
-      const isGuest = request.isGuest || (request.userId && typeof request.userId === 'string' && request.userId.startsWith('guest_'));
-      if (guestFilter === 'guest' && !isGuest) return false;
-      if (guestFilter === 'registered' && isGuest) return false;
+    if (guestFilter !== "all") {
+      const isGuest =
+        request.isGuest ||
+        (request.userId &&
+          typeof request.userId === "string" &&
+          request.userId.startsWith("guest_"));
+      if (guestFilter === "guest" && !isGuest) return false;
+      if (guestFilter === "registered" && isGuest) return false;
     }
-    
+
     // Date filter
-    if (dateFilter !== 'all') {
+    if (dateFilter !== "all") {
       const requestDate = new Date(request.createdAt);
       const today = new Date();
       const yesterday = new Date(today);
@@ -69,50 +91,68 @@ const Requests = () => {
       lastWeek.setDate(lastWeek.getDate() - 7);
       const lastMonth = new Date(today);
       lastMonth.setMonth(lastMonth.getMonth() - 1);
-      
+
       switch (dateFilter) {
-        case 'today':
+        case "today":
           if (requestDate.toDateString() !== today.toDateString()) return false;
           break;
-        case 'yesterday':
-          if (requestDate.toDateString() !== yesterday.toDateString()) return false;
+        case "yesterday":
+          if (requestDate.toDateString() !== yesterday.toDateString())
+            return false;
           break;
-        case 'lastWeek':
+        case "lastWeek":
           if (requestDate < lastWeek) return false;
           break;
-        case 'lastMonth':
+        case "lastMonth":
           if (requestDate < lastMonth) return false;
           break;
-        case 'custom':
+        case "custom":
           if (startDate && requestDate < new Date(startDate)) return false;
-          if (endDate && requestDate > new Date(endDate + 'T23:59:59')) return false;
+          if (endDate && requestDate > new Date(endDate + "T23:59:59"))
+            return false;
           break;
       }
     }
-    
+
     return true;
   });
+
+  // Pagination logic
+  const totalItems = filteredRequests.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentRequests = filteredRequests.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
 
   const handleStatusUpdate = async (requestId, newStatus) => {
     setSubmitting(true);
     try {
       await api.put(`/requests/${requestId}/status`, { status: newStatus });
-      
+
       // Send email notification
       try {
-        await api.post(`/requests/${requestId}/notify`, { 
+        await api.post(`/requests/${requestId}/notify`, {
           status: newStatus,
-          action: newStatus === 'approved' ? 'approval' : 'rejection'
+          action: newStatus === "approved" ? "approval" : "rejection",
         });
       } catch (emailError) {
-        console.error('Email notification failed:', emailError);
+        console.error("Email notification failed:", emailError);
         // Don't fail the whole operation if email fails
       }
-      
+
       fetchRequests();
     } catch (error) {
-      console.error('Error updating request status:', error);
-      alert('Error updating request status. Please try again.');
+      console.error("Error updating request status:", error);
+      alert("Error updating request status. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -121,22 +161,29 @@ const Requests = () => {
   const handleDownloadPdf = async (request) => {
     const requestNumber = request.requestNumber || request.id;
     if (!requestNumber) {
-      alert('Cannot download PDF: Request number not found');
+      alert("Cannot download PDF: Request number not found");
       return;
     }
-    
     setDownloadingPdf(requestNumber);
     try {
-      // Get admin-stamped invoice data from backend
-      const response = await api.post(`/requests/${requestNumber}/admin-pdf`);
-      const adminInvoiceData = response.data.data;
-      
-      // Generate and download PDF with admin stamp
-      await generateProformaInvoice(adminInvoiceData, true);
-      
+      // Download PDF from backend as blob
+      const response = await api.post(
+        `/requests/${requestNumber}/admin-pdf`,
+        {},
+        { responseType: "blob" }
+      );
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Admin_Invoice_${requestNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error downloading PDF:', error);
-      alert('Failed to download PDF. Please try again.');
+      console.error("Error downloading PDF:", error);
+      alert("Failed to download PDF. Please try again.");
     } finally {
       setDownloadingPdf(null);
     }
@@ -148,46 +195,50 @@ const Requests = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getStatusBadgeColor = (status) => {
     switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      case "processing":
+        return "bg-blue-100 text-blue-800";
+      case "completed":
+        return "bg-gray-100 text-gray-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-GH', {
-      style: 'currency',
-      currency: 'GHS'
+    return new Intl.NumberFormat("en-GH", {
+      style: "currency",
+      currency: "GHS",
     }).format(amount);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-                 <div>
-           <h1 className="text-2xl font-bold text-gray-900">Proforma Invoices</h1>
-           <p className="text-gray-600">Manage customer proforma invoices and quotes</p>
-         </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Proforma Invoices
+          </h1>
+          <p className="text-gray-600">
+            Manage customer proforma invoices and quotes
+          </p>
+        </div>
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow">
@@ -202,12 +253,14 @@ const Requests = () => {
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-        
+
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Status Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -219,10 +272,12 @@ const Requests = () => {
               <option value="rejected">Rejected</option>
             </select>
           </div>
-          
+
           {/* Guest Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">User Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              User Type
+            </label>
             <select
               value={guestFilter}
               onChange={(e) => setGuestFilter(e.target.value)}
@@ -233,10 +288,12 @@ const Requests = () => {
               <option value="registered">Registered Users</option>
             </select>
           </div>
-          
+
           {/* Date Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Date Range
+            </label>
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
@@ -250,12 +307,14 @@ const Requests = () => {
               <option value="custom">Custom Range</option>
             </select>
           </div>
-          
+
           {/* Custom Date Range */}
-          {dateFilter === 'custom' && (
+          {dateFilter === "custom" && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Date
+                </label>
                 <input
                   type="date"
                   value={startDate}
@@ -264,7 +323,9 @@ const Requests = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  End Date
+                </label>
                 <input
                   type="date"
                   value={endDate}
@@ -275,18 +336,21 @@ const Requests = () => {
             </>
           )}
         </div>
-        
+
         {/* Clear Filters Button */}
-        {(statusFilter !== 'all' || guestFilter !== 'all' || dateFilter !== 'all' || searchTerm) && (
+        {(statusFilter !== "all" ||
+          guestFilter !== "all" ||
+          dateFilter !== "all" ||
+          searchTerm) && (
           <div className="mt-4">
             <button
               onClick={() => {
-                setStatusFilter('all');
-                setGuestFilter('all');
-                setDateFilter('all');
-                setStartDate('');
-                setEndDate('');
-                setSearchTerm('');
+                setStatusFilter("all");
+                setGuestFilter("all");
+                setDateFilter("all");
+                setStartDate("");
+                setEndDate("");
+                setSearchTerm("");
               }}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
@@ -297,50 +361,72 @@ const Requests = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-                 {loading ? (
-           <div className="p-8 text-center">
-             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-             <p className="mt-4 text-gray-600">Loading invoices...</p>
-           </div>
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading invoices...</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
-                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Invoice #
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Items
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredRequests.map((request) => (
+                {currentRequests.map((request) => (
                   <tr key={request.id} className="hover:bg-gray-50">
-                                         <td className="px-6 py-4 whitespace-nowrap">
-                       <button
-                         onClick={() => openViewModal(request)}
-                         className="text-left hover:text-blue-600 transition-colors"
-                       >
-                                                 <div className="text-sm font-medium text-gray-900">{request.requestNumber || request.id}</div>
-                        <div className="text-sm text-gray-500">
-                          {request.items?.length || 0} item{(request.items?.length || 0) !== 1 ? 's' : ''}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => openViewModal(request)}
+                        className="text-left hover:text-blue-600 transition-colors"
+                      >
+                        <div className="text-sm font-medium text-gray-900">
+                          {request.requestNumber || request.id}
                         </div>
-                       </button>
-                     </td>
-                     <td className="px-6 py-4 whitespace-nowrap">
-                       <div className="text-sm font-medium text-gray-900">
-                         {request.customerName}
-                         {(request.isGuest || (request.userId && typeof request.userId === 'string' && request.userId.startsWith('guest_'))) && (
-                           <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                             Guest
-                           </span>
-                         )}
-                       </div>
-                       <div className="text-sm text-gray-500">{request.customerEmail}</div>
-                     </td>
+                        <div className="text-sm text-gray-500">
+                          {request.items?.length || 0} item
+                          {(request.items?.length || 0) !== 1 ? "s" : ""}
+                        </div>
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {request.customerName}
+                        {(request.isGuest ||
+                          (request.userId &&
+                            typeof request.userId === "string" &&
+                            request.userId.startsWith("guest_"))) && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                            Guest
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {request.customerEmail}
+                      </div>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 max-w-xs">
                         {(request.items || []).map((item, index) => (
@@ -354,8 +440,13 @@ const Requests = () => {
                       {formatCurrency(request.totalAmount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(request.status)}`}>
-                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                          request.status
+                        )}`}
+                      >
+                        {request.status.charAt(0).toUpperCase() +
+                          request.status.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -372,34 +463,42 @@ const Requests = () => {
                         </button>
                         <button
                           onClick={() => handleDownloadPdf(request)}
-                          disabled={downloadingPdf === (request.requestNumber || request.id)}
+                          disabled={
+                            downloadingPdf ===
+                            (request.requestNumber || request.id)
+                          }
                           className="text-purple-600 hover:text-purple-900 disabled:opacity-50"
                           title="Download PDF Invoice"
                         >
-                          {downloadingPdf === (request.requestNumber || request.id) ? (
+                          {downloadingPdf ===
+                          (request.requestNumber || request.id) ? (
                             <div className="animate-spin w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full"></div>
                           ) : (
                             <ArrowDownTrayIcon className="w-4 h-4" />
                           )}
                         </button>
-                        {request.status === 'pending' && (
+                        {request.status === "pending" && (
                           <>
-                                                         <button
-                               onClick={() => handleStatusUpdate(request.id, 'approved')}
-                               disabled={submitting}
-                               className="text-green-600 hover:text-green-900 disabled:opacity-50"
-                               title="Approve Invoice"
-                             >
-                               <CheckIcon className="w-4 h-4" />
-                             </button>
-                             <button
-                               onClick={() => handleStatusUpdate(request.id, 'rejected')}
-                               disabled={submitting}
-                               className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                               title="Reject Invoice"
-                             >
-                               <XMarkIcon className="w-4 h-4" />
-                             </button>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(request.id, "approved")
+                              }
+                              disabled={submitting}
+                              className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                              title="Approve Invoice"
+                            >
+                              <CheckIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(request.id, "rejected")
+                              }
+                              disabled={submitting}
+                              className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                              title="Reject Invoice"
+                            >
+                              <XMarkIcon className="w-4 h-4" />
+                            </button>
                           </>
                         )}
                       </div>
@@ -408,6 +507,113 @@ const Requests = () => {
                 ))}
               </tbody>
             </table>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <label className="text-sm text-gray-700">Show:</label>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                        className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                      <span className="text-sm text-gray-700">per page</span>
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                      <span className="font-medium">{Math.min(endIndex, totalItems)}</span> of{' '}
+                      <span className="font-medium">{totalItems}</span> results
+                    </div>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Previous</span>
+                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      
+                      {/* Page Numbers */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        // Show current page, first page, last page, and pages around current
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 2 && page <= currentPage + 2)
+                        ) {
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => handlePageChange(page)}
+                              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                page === currentPage
+                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (
+                          page === currentPage - 3 ||
+                          page === currentPage + 3
+                        ) {
+                          return (
+                            <span
+                              key={page}
+                              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+                            >
+                              ...
+                            </span>
+                          );
+                        }
+                        return null;
+                      })}
+                      
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Next</span>
+                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -416,60 +622,101 @@ const Requests = () => {
       {showViewModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                         <h2 className="text-xl font-bold mb-4">Proforma Invoice Details</h2>
+            <h2 className="text-xl font-bold mb-4">Proforma Invoice Details</h2>
             <div className="space-y-6">
-                             {/* Request Header */}
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 <div>
-                   <label className="block text-sm font-medium text-gray-700">Invoice Number</label>
-                   <p className="mt-1 text-sm text-gray-900 font-medium">{selectedRequest.requestNumber || selectedRequest.id}</p>
-                 </div>
+              {/* Request Header */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(selectedRequest.status)}`}>
-                    {selectedRequest.status.charAt(0).toUpperCase() + selectedRequest.status.slice(1)}
+                  <label className="block text-sm font-medium text-gray-700">
+                    Invoice Number
+                  </label>
+                  <p className="mt-1 text-sm text-gray-900 font-medium">
+                    {selectedRequest.requestNumber || selectedRequest.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Status
+                  </label>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                      selectedRequest.status
+                    )}`}
+                  >
+                    {selectedRequest.status.charAt(0).toUpperCase() +
+                      selectedRequest.status.slice(1)}
                   </span>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Date</label>
-                  <p className="mt-1 text-sm text-gray-900">{formatDate(selectedRequest.createdAt)}</p>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Date
+                  </label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {formatDate(selectedRequest.createdAt)}
+                  </p>
                 </div>
               </div>
 
               {/* Customer Information */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Customer Information</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-3">
+                  Customer Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Name</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedRequest.customerName}</p>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Name
+                    </label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {selectedRequest.customerName}
+                    </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedRequest.customerEmail}</p>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Email
+                    </label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {selectedRequest.customerEmail}
+                    </p>
                   </div>
                 </div>
               </div>
 
-                             {/* Items */}
-               <div>
-                 <h3 className="text-lg font-medium text-gray-900 mb-3">Invoice Items</h3>
+              {/* Items */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-3">
+                  Invoice Items
+                </h3>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <table className="min-w-full">
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2">Product</th>
-                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2">Quantity</th>
-                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2">Unit Price</th>
-                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2">Total</th>
+                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2">
+                          Product
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2">
+                          Quantity
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2">
+                          Unit Price
+                        </th>
+                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2">
+                          Total
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {(selectedRequest.items || []).map((item, index) => (
                         <tr key={index} className="border-b border-gray-200">
-                          <td className="py-2 text-sm text-gray-900">{item.name}</td>
-                          <td className="py-2 text-sm text-gray-900">{item.quantity}</td>
-                          <td className="py-2 text-sm text-gray-900">{formatCurrency(item.price)}</td>
+                          <td className="py-2 text-sm text-gray-900">
+                            {item.name}
+                          </td>
+                          <td className="py-2 text-sm text-gray-900">
+                            {item.quantity}
+                          </td>
+                          <td className="py-2 text-sm text-gray-900">
+                            {formatCurrency(item.price)}
+                          </td>
                           <td className="py-2 text-sm text-gray-900 font-medium">
                             {formatCurrency(item.quantity * item.price)}
                           </td>
@@ -478,7 +725,12 @@ const Requests = () => {
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 border-gray-300">
-                        <td colSpan="3" className="py-2 text-sm font-medium text-gray-900 text-right">Total:</td>
+                        <td
+                          colSpan="3"
+                          className="py-2 text-sm font-medium text-gray-900 text-right"
+                        >
+                          Total:
+                        </td>
                         <td className="py-2 text-sm font-bold text-gray-900">
                           {formatCurrency(selectedRequest.totalAmount)}
                         </td>
@@ -488,57 +740,71 @@ const Requests = () => {
                 </div>
               </div>
 
-                             {/* Notes */}
-               {selectedRequest.notes && (
-                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-2">Customer Notes</label>
-                   <div className="bg-gray-50 rounded-lg p-4">
-                     <p className="text-sm text-gray-900">{selectedRequest.notes}</p>
-                   </div>
-                 </div>
-               )}
+              {/* Notes */}
+              {selectedRequest.notes && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Customer Notes
+                  </label>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-900">
+                      {selectedRequest.notes}
+                    </p>
+                  </div>
+                </div>
+              )}
 
-               {/* Email Notification Status */}
-               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                 <div className="flex items-center">
-                   <div className="flex-shrink-0">
-                     <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                     </svg>
-                   </div>
-                   <div className="ml-3">
-                     <p className="text-sm text-blue-700">
-                       <strong>Email Notification:</strong> When you approve or reject this invoice, an email will be automatically sent to the customer.
-                     </p>
-                   </div>
-                 </div>
-               </div>
+              {/* Email Notification Status */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-blue-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      <strong>Email Notification:</strong> When you approve or
+                      reject this invoice, an email will be automatically sent
+                      to the customer.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               {/* Status Actions */}
-              {selectedRequest.status === 'pending' && (
+              {selectedRequest.status === "pending" && (
                 <div className="flex space-x-3 pt-4 border-t border-gray-200">
-                                     <button
-                     onClick={() => {
-                       handleStatusUpdate(selectedRequest.id, 'approved');
-                       setShowViewModal(false);
-                     }}
-                     disabled={submitting}
-                     className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-                   >
-                     <CheckIcon className="w-4 h-4" />
-                     <span>Approve Invoice</span>
-                   </button>
-                   <button
-                     onClick={() => {
-                       handleStatusUpdate(selectedRequest.id, 'rejected');
-                       setShowViewModal(false);
-                     }}
-                     disabled={submitting}
-                     className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-                   >
-                     <XMarkIcon className="w-4 h-4" />
-                     <span>Reject Invoice</span>
-                   </button>
+                  <button
+                    onClick={() => {
+                      handleStatusUpdate(selectedRequest.id, "approved");
+                      setShowViewModal(false);
+                    }}
+                    disabled={submitting}
+                    className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                  >
+                    <CheckIcon className="w-4 h-4" />
+                    <span>Approve Invoice</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleStatusUpdate(selectedRequest.id, "rejected");
+                      setShowViewModal(false);
+                    }}
+                    disabled={submitting}
+                    className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                  >
+                    <XMarkIcon className="w-4 h-4" />
+                    <span>Reject Invoice</span>
+                  </button>
                 </div>
               )}
             </div>

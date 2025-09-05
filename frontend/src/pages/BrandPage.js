@@ -4,6 +4,8 @@ import { useScroll, useTransform } from 'framer-motion';
 import { useProducts } from '../hooks/useProducts';
 import { useBrandData } from '../hooks/useBrandData';
 import Loading from '../components/Loading';
+import AdvancedSEO from '../components/AdvancedSEO';
+import { generateBreadcrumbs, generateBrandSEO } from '../utils/seoUtils';
 
 // Import sections
 import {
@@ -52,7 +54,7 @@ const BrandPage = () => {
       case 'la-veeda':
         return {
           subtitle: "Pure Shea, Pure Care",
-          description: "La Veeda brings you premium cosmetics and skincare products made with the finest natural ingredients from Lawra, Northern Ghana. Our products combine traditional African beauty wisdom with modern cosmetic science.",
+          description: "Premium Quality Shea Butter, African Black Soap, and Natural Skincare Products. Sustainably sourced and traditionally handcrafted, our products deliver deep nourishment, gentle cleansing, and long-lasting care - pure beauty from nature, made for you.",
           features: [
             "100% Natural Ingredients",
             "Traditional African Formulations",
@@ -95,8 +97,13 @@ const BrandPage = () => {
 
   // La Veeda - Premium cosmetics and skincare
   if (brandSlug === 'la-veeda') {
+    const seoData = generateBrandSEO(brand);
     return (
       <div className="min-h-screen bg-white">
+        <AdvancedSEO 
+          {...seoData}
+          breadcrumbs={generateBreadcrumbs(`/brands/${brandSlug}`, brand.name)}
+        />
         {/* Hero Section */}
         <BrandHeroSection
           brand={brand}
@@ -149,8 +156,13 @@ const BrandPage = () => {
 
   // AfriSmocks - Traditional fashion and cultural heritage
   if (brandSlug === 'afrismocks') {
+    const seoData = generateBrandSEO(brand);
     return (
       <div className="min-h-screen bg-white">
+        <AdvancedSEO 
+          {...seoData}
+          breadcrumbs={generateBreadcrumbs(`/brands/${brandSlug}`, brand.name)}
+        />
         {/* Hero Section */}
         <AfriSmocksHeroSection
           brand={brand}
@@ -210,7 +222,7 @@ const BrandPage = () => {
             text: "Get in Touch",
             to: "/contact"
           }}
-          background="primary"
+          customBackground="#1E40AF"
         />
       </div>
     );
@@ -218,8 +230,13 @@ const BrandPage = () => {
 
   // OgriBusiness - Agricultural products and farm produce
   if (brandSlug === 'ogribusiness') {
+    const seoData = generateBrandSEO(brand);
     return (
       <div className="min-h-screen bg-white">
+        <AdvancedSEO 
+          {...seoData}
+          breadcrumbs={generateBreadcrumbs(`/brands/${brandSlug}`, brand.name)}
+        />
         {/* Hero Section */}
         <OgriBusinessHeroSection
           brand={brand}

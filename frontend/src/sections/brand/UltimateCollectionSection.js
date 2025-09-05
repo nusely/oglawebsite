@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiStar, FiUsers, FiFeather } from 'react-icons/fi';
+import { FiStar, FiUsers, FiFeather, FiArrowRight } from 'react-icons/fi';
 import { useRequestBasket } from '../../contexts/RequestBasketContext';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -16,11 +17,12 @@ const UltimateCollectionSection = ({
   const [featuredProduct, setFeaturedProduct] = useState(propFeaturedProduct);
   const [loading, setLoading] = useState(!propFeaturedProduct);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchFeaturedProduct = async () => {
       try {
-        const response = await api.get('/brand-featured-products/brand/laveeda');
+        const response = await api.get('/brand-featured-products/brand/la-veeda');
         if (response.data.success && response.data.data.featuredProduct) {
           setFeaturedProduct(response.data.data.featuredProduct);
         }
@@ -37,6 +39,15 @@ const UltimateCollectionSection = ({
       fetchFeaturedProduct();
     }
   }, [propFeaturedProduct]);
+
+  const handleProductClick = () => {
+    if (featuredProduct) {
+      // Navigate to product detail page
+      // For featured products, we'll use a special route
+      navigate(`/featured-product/${featuredProduct.id || featuredProduct._id}`);
+    }
+  };
+
   return (
     <section className="relative py-24 bg-[#1e4735] text-white">
       <div className="container">
@@ -79,14 +90,28 @@ const UltimateCollectionSection = ({
                 </div>
               ) : featuredProduct ? (
                 <>
-                  <div className="relative h-80 overflow-hidden rounded-xl mb-6">
+                  <div 
+                    className="relative h-80 overflow-hidden rounded-xl mb-6 cursor-pointer group"
+                    onClick={handleProductClick}
+                  >
                     <img
                       src={featuredProduct.image}
                       alt={featuredProduct.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <div className="bg-white/90 text-gray-800 px-4 py-2 rounded-full flex items-center space-x-2">
+                        <span className="font-medium">View Details</span>
+                        <FiArrowRight className="w-4 h-4" />
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-2xl font-bold mb-2">{featuredProduct.name}</h3>
+                  <h3 
+                    className="text-2xl font-bold mb-2 cursor-pointer hover:text-[#e8d77c] transition-colors duration-300"
+                    onClick={handleProductClick}
+                  >
+                    {featuredProduct.name}
+                  </h3>
                   <p className="text-white/80 mb-4">{featuredProduct.description}</p>
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-3xl font-bold text-[#e8d77c]">{featuredProduct.price}</span>

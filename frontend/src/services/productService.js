@@ -82,7 +82,7 @@ export const mockData = {
       _id: '1',
       name: 'La Veeda',
       slug: 'la-veeda',
-      description: 'Premium cosmetics and skincare products made with natural shea butter from Lawra, Ghana.',
+      description: 'Premium Quality Shea Butter, African Black Soap, and Natural Skincare Products. Sustainably sourced and traditionally handcrafted, our products deliver deep nourishment, gentle cleansing, and long-lasting care - pure beauty from nature, made for you.',
       logo: '/images/brands/la-veeda-logo.png',
       bannerImage: '/images/brands/la-veeda-banner.jpg',
       brandColors: {

@@ -7,7 +7,7 @@ const BrandStorySection = ({
   title = "From Lawra, Northern Ghana",
   description = "Every La Veeda product is sourced from the heart of Northern Ghana, specifically from the region of Lawra. This area is known for its rich cultural heritage and traditional craftsmanship that has been passed down through generations.",
   location = "Lawra, Upper West Region, Ghana",
-  image = "https://res.cloudinary.com/dpznya3mz/image/upload/v1756651291/ogla/static/brands/laveeda/story_radiate.jpg/story_radiate.jpg",
+  image = "https://res.cloudinary.com/dpznya3mz/image/upload/v1756899498/rawsheabutter__q3buz2.jpg",
   ctaButton = {
     text: "Explore Our Story",
     to: "/products",

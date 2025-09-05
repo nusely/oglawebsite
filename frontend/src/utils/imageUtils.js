@@ -13,7 +13,7 @@ export const getImageUrl = (imagePath) => {
   
   // If it starts with /uploads, prepend the backend URL
   if (imagePath.startsWith('/uploads/')) {
-    const backendUrl = 'http://localhost:5000';
+    const backendUrl = 'http://192.168.0.123:5000';
     const fullUrl = `${backendUrl}${imagePath}`;
     console.log('getImageUrl output (uploads):', fullUrl);
     return fullUrl;

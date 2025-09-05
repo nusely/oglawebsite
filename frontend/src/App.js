@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { HelmetProvider } from 'react-helmet-async';
+import { initializeAnalytics } from './utils/analytics';
 
 // Context Providers
 import { AuthProvider } from './contexts/AuthContext';
@@ -26,6 +27,7 @@ import './styles/globals.css';
 const Home = lazy(() => import('./pages/Home'));
 const Products = lazy(() => import('./pages/Products'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const FeaturedProductDetail = lazy(() => import('./pages/FeaturedProductDetail'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Stories = lazy(() => import('./pages/Stories'));
@@ -66,6 +68,11 @@ function App() {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
+  }, []);
+
+  // Initialize Google Analytics
+  useEffect(() => {
+    initializeAnalytics();
   }, []);
 
   return (
@@ -122,6 +129,17 @@ function App() {
                                   <PageWrapper>
                                     <Breadcrumbs />
                                     <ProductDetail />
+                                  </PageWrapper>
+                                } 
+                              />
+                              
+                              {/* Featured Product Detail Route */}
+                              <Route 
+                                path="/featured-product/:id" 
+                                element={
+                                  <PageWrapper>
+                                    <Breadcrumbs />
+                                    <FeaturedProductDetail />
                                   </PageWrapper>
                                 } 
                               />

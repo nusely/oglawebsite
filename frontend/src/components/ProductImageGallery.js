@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiChevronLeft, FiChevronRight, FiZoomIn } from 'react-icons/fi';
 import { getImageUrl } from '../utils/imageUtils';
@@ -6,6 +6,9 @@ import { getImageUrl } from '../utils/imageUtils';
 const ProductImageGallery = ({ images, productName }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const imageRef = useRef(null);
 
   if (!images || images.length === 0) {
     return (
@@ -27,19 +30,50 @@ const ProductImageGallery = ({ images, productName }) => {
     setCurrentImageIndex(index);
   };
 
+  // Touch handlers for mobile swipe
+  const onTouchStart = (e) => {
+    e.preventDefault();
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    e.preventDefault();
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 30; // Reduced threshold for better responsiveness
+    const isRightSwipe = distance < -30;
+
+    if (isLeftSwipe && images.length > 1) {
+      nextImage();
+    } else if (isRightSwipe && images.length > 1) {
+      prevImage();
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Main Image */}
       <div className="relative group">
         <motion.img
+          ref={imageRef}
           key={currentImageIndex}
           src={getImageUrl(images[currentImageIndex])}
           alt={`${productName} - Image ${currentImageIndex + 1}`}
-          className="w-full h-96 object-cover rounded-lg cursor-pointer"
+          className="w-full h-96 object-cover rounded-lg cursor-pointer select-none"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
           onClick={() => setIsModalOpen(true)}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          draggable={false}
         />
         
         {/* Zoom Icon Overlay */}
