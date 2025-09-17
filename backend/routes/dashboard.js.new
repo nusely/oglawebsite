@@ -1,0 +1,351 @@
+const express = require("express");
+const { authenticateToken, requireAdmin } = require("../middleware/auth");
+const { query } = require("../config/azure-database");
+const router = express.Router();
+
+// Set query timeout (15 seconds)
+const QUERY_TIMEOUT = 15000;
+
+// Helper function to execute a query with timeout
+const queryWithTimeout = async (sql, params = []) => {
+  try {
+    const result = await Promise.race([
+      query(sql, params),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Query timeout exceeded")), QUERY_TIMEOUT)
+      )
+    ]);
+    return result;
+  } catch (error) {
+    console.error("Query failed:", sql, error);
+    throw error;
+  }
+};
+
+// Get dashboard statistics
+router.get("/stats", authenticateToken, requireAdmin, async (req, res) => {
+  const start = Date.now();
+  try {
+    console.log("📊 Dashboard stats request started");
+    
+    // Get current month and last month dates
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+    // Run all stats queries in parallel
+    const [userStats, productStats, requestStats, revenueStats, reviewStats] = await Promise.all([
+      // User stats
+      Promise.all([
+        queryWithTimeout("SELECT COUNT(*) as count FROM users WHERE isActive = 1")
+          .then(r => r[0].count || 0),
+        queryWithTimeout(
+          "SELECT COUNT(*) as count FROM users WHERE isActive = 1 AND DATEPART(month, createdAt) = ? AND DATEPART(year, createdAt) = ?",
+          [currentMonth, currentYear]
+        ).then(r => r[0].count || 0),
+        queryWithTimeout(
+          "SELECT COUNT(*) as count FROM users WHERE isActive = 1 AND DATEPART(month, createdAt) = ? AND DATEPART(year, createdAt) = ?",
+          [lastMonth, lastMonthYear]
+        ).then(r => r[0].count || 0)
+      ]).catch(() => [0, 0, 0]),
+
+      // Product stats
+      Promise.all([
+        queryWithTimeout("SELECT COUNT(*) as count FROM products WHERE isActive = 1")
+          .then(r => r[0].count || 0),
+        queryWithTimeout(
+          "SELECT COUNT(*) as count FROM products WHERE isActive = 1 AND DATEPART(month, createdAt) = ? AND DATEPART(year, createdAt) = ?",
+          [currentMonth, currentYear]
+        ).then(r => r[0].count || 0),
+        queryWithTimeout(
+          "SELECT COUNT(*) as count FROM products WHERE isActive = 1 AND DATEPART(month, createdAt) = ? AND DATEPART(year, createdAt) = ?",
+          [lastMonth, lastMonthYear]
+        ).then(r => r[0].count || 0)
+      ]).catch(() => [0, 0, 0]),
+
+      // Request stats
+      Promise.all([
+        queryWithTimeout("SELECT COUNT(*) as count FROM requests")
+          .then(r => r[0].count || 0),
+        queryWithTimeout(
+          "SELECT COUNT(*) as count FROM requests WHERE DATEPART(month, createdAt) = ? AND DATEPART(year, createdAt) = ?",
+          [currentMonth, currentYear]
+        ).then(r => r[0].count || 0),
+        queryWithTimeout(
+          "SELECT COUNT(*) as count FROM requests WHERE DATEPART(month, createdAt) = ? AND DATEPART(year, createdAt) = ?",
+          [lastMonth, lastMonthYear]
+        ).then(r => r[0].count || 0)
+      ]).catch(() => [0, 0, 0]),
+
+      // Revenue stats
+      Promise.all([
+        queryWithTimeout("SELECT SUM(totalAmount) as total FROM requests WHERE status = 'approved'")
+          .then(r => r[0].total || 0),
+        queryWithTimeout(
+          "SELECT SUM(totalAmount) as total FROM requests WHERE status = 'approved' AND MONTH(createdAt) = ? AND YEAR(createdAt) = ?",
+          [currentMonth, currentYear]
+        ).then(r => r[0].total || 0),
+        queryWithTimeout(
+          "SELECT SUM(totalAmount) as total FROM requests WHERE status = 'approved' AND MONTH(createdAt) = ? AND YEAR(createdAt) = ?",
+          [lastMonth, lastMonthYear]
+        ).then(r => r[0].total || 0)
+      ]).catch(() => [0, 0, 0]),
+
+      // Review stats
+      Promise.all([
+        queryWithTimeout("SELECT COUNT(*) as count FROM reviews")
+          .then(r => r[0].count || 0),
+        queryWithTimeout(
+          "SELECT COUNT(*) as count FROM reviews WHERE MONTH(createdAt) = ? AND YEAR(createdAt) = ?",
+          [currentMonth, currentYear]
+        ).then(r => r[0].count || 0),
+        queryWithTimeout(
+          "SELECT COUNT(*) as count FROM reviews WHERE MONTH(createdAt) = ? AND YEAR(createdAt) = ?",
+          [lastMonth, lastMonthYear]
+        ).then(r => r[0].count || 0)
+      ]).catch(() => [0, 0, 0])
+    ]);
+
+    // Calculate growth percentages
+    const calculateGrowth = (thisMonth, lastMonth) => {
+      return lastMonth > 0 ? Math.round(((thisMonth - lastMonth) / lastMonth) * 100) : 0;
+    };
+
+    const [
+      [totalUsers, usersThisMonth, usersLastMonth],
+      [totalProducts, productsThisMonth, productsLastMonth],
+      [totalRequests, requestsThisMonth, requestsLastMonth],
+      [totalRevenue, revenueThisMonth, revenueLastMonth],
+      [totalReviews, reviewsThisMonth, reviewsLastMonth]
+    ] = [userStats, productStats, requestStats, revenueStats, reviewStats];
+
+    const duration = Date.now() - start;
+    console.log(`📊 Dashboard stats completed in ${duration}ms`);
+
+    res.json({
+      success: true,
+      data: {
+        users: {
+          total: totalUsers,
+          thisMonth: usersThisMonth,
+          lastMonth: usersLastMonth,
+          growthPercent: calculateGrowth(usersThisMonth, usersLastMonth)
+        },
+        products: {
+          total: totalProducts,
+          thisMonth: productsThisMonth,
+          lastMonth: productsLastMonth,
+          growthPercent: calculateGrowth(productsThisMonth, productsLastMonth)
+        },
+        requests: {
+          total: totalRequests,
+          thisMonth: requestsThisMonth,
+          lastMonth: requestsLastMonth,
+          growthPercent: calculateGrowth(requestsThisMonth, requestsLastMonth)
+        },
+        revenue: {
+          total: totalRevenue,
+          thisMonth: revenueThisMonth,
+          lastMonth: revenueLastMonth,
+          growthPercent: calculateGrowth(revenueThisMonth, revenueLastMonth)
+        },
+        reviews: {
+          total: totalReviews,
+          thisMonth: reviewsThisMonth,
+          lastMonth: reviewsLastMonth,
+          growthPercent: calculateGrowth(reviewsThisMonth, reviewsLastMonth)
+        }
+      },
+      timing: { duration }
+    });
+  } catch (error) {
+    const duration = Date.now() - start;
+    console.error("Dashboard stats error:", {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      duration
+    });
+
+    res.status(500).json({
+      success: false,
+      message: process.env.NODE_ENV === "development"
+        ? `Failed to fetch dashboard statistics: ${error.message}`
+        : "Failed to fetch dashboard statistics",
+      timing: { duration }
+    });
+  }
+});
+
+// Get recent activities for dashboard
+router.get("/recent-activities", authenticateToken, requireAdmin, async (req, res) => {
+  const start = Date.now();
+  try {
+    const { limit = 5 } = req.query;
+
+    const activities = await queryWithTimeout(
+      `SELECT a.*, u.firstName, u.lastName, u.email 
+       FROM activities a 
+       LEFT JOIN users u ON a.userId = u.id 
+       ORDER BY a.createdAt DESC 
+       OFFSET 0 ROWS 
+       FETCH NEXT ? ROWS ONLY`,
+      [parseInt(limit)]
+    );
+
+    const formattedActivities = activities.map((activity) => ({
+      id: activity.id,
+      action: activity.action,
+      entityType: activity.entityType,
+      entityId: activity.entityId,
+      details: activity.details,
+      ipAddress: activity.ipAddress,
+      userAgent: activity.userAgent,
+      createdAt: activity.createdAt,
+      user: activity.firstName && activity.lastName
+        ? `${activity.firstName} ${activity.lastName}`
+        : activity.email || "System"
+    }));
+
+    const duration = Date.now() - start;
+    res.json({
+      success: true,
+      data: formattedActivities,
+      timing: { duration }
+    });
+  } catch (error) {
+    const duration = Date.now() - start;
+    console.error("Recent activities error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch recent activities",
+      timing: { duration }
+    });
+  }
+});
+
+// Update request status
+router.post("/update-request-status/:id", authenticateToken, requireAdmin, async (req, res) => {
+  const start = Date.now();
+  try {
+    const { id } = req.params;
+    const { status, message } = req.body;
+    
+    // First get the current request details
+    const [request] = await queryWithTimeout(
+      `SELECT r.*, u.email, u.firstName, u.lastName 
+       FROM requests r 
+       JOIN users u ON r.userId = u.id 
+       WHERE r.id = ?`,
+      [id]
+    );
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found"
+      });
+    }
+
+    // Update the request status
+    await queryWithTimeout(
+      "UPDATE requests SET status = ?, adminMessage = ?, updatedAt = GETDATE() WHERE id = ?",
+      [status, message || null, id]
+    );
+
+    // Log the activity
+    await queryWithTimeout(
+      `INSERT INTO activities (userId, action, entityType, entityId, details, ipAddress, userAgent) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        req.user.id,
+        'update',
+        'request',
+        id,
+        `Updated request status to ${status}`,
+        req.ip,
+        req.get('user-agent')
+      ]
+    );
+
+    // Send email notification
+    const emailUtils = require('../utils/email');
+    await emailUtils.sendRequestStatusEmail({
+      to: request.email,
+      name: `${request.firstName} ${request.lastName}`,
+      requestId: request.id,
+      status,
+      message: message || '',
+      amount: request.totalAmount
+    });
+
+    const duration = Date.now() - start;
+    res.json({
+      success: true,
+      message: "Request status updated successfully",
+      timing: { duration }
+    });
+  } catch (error) {
+    const duration = Date.now() - start;
+    console.error("Update request status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update request status",
+      timing: { duration }
+    });
+  }
+});
+
+// Get featured products count for dashboard
+router.get("/featured-products-count", authenticateToken, requireAdmin, async (req, res) => {
+  const start = Date.now();
+  try {
+    const [result] = await queryWithTimeout(
+      "SELECT COUNT(*) as count FROM brand_featured_products WHERE isActive = 1"
+    );
+
+    const duration = Date.now() - start;
+    res.json({
+      success: true,
+      data: { count: result.count },
+      timing: { duration }
+    });
+  } catch (error) {
+    const duration = Date.now() - start;
+    console.error("Featured products count error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch featured products count",
+      timing: { duration }
+    });
+  }
+});
+
+// Get pending requests count for dashboard
+router.get("/pending-requests-count", authenticateToken, requireAdmin, async (req, res) => {
+  const start = Date.now();
+  try {
+    const [result] = await queryWithTimeout(
+      'SELECT COUNT(*) as count FROM requests WHERE status = "pending"'
+    );
+
+    const duration = Date.now() - start;
+    res.json({
+      success: true,
+      data: { count: result.count },
+      timing: { duration }
+    });
+  } catch (error) {
+    const duration = Date.now() - start;
+    console.error("Pending requests count error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pending requests count",
+      timing: { duration }
+    });
+  }
+});
+
+module.exports = router;

@@ -1,6 +1,6 @@
 const express = require('express');
 const { query: validatorQuery, validationResult } = require('express-validator');
-const { query } = require('../config/database');
+const { query } = require('../config/azure-database');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const ActivityLogger = require('../utils/activityLogger');
 

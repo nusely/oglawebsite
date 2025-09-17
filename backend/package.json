@@ -28,12 +28,12 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "mssql": "^10.0.4",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
-    "mysql2": "^3.6.5",
     "nodemailer": "^6.9.7",
     "playwright": "^1.55.0",
-    "sqlite3": "^5.1.7"
+    "replace-in-file": "^8.3.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

@@ -1,7 +1,7 @@
 // routes/requests.js
 const express = require("express");
 const { body, validationResult } = require("express-validator");
-const { query } = require("../config/database");
+const { query, run } = require("../config/azure-database");
 const {
   authenticateToken,
   requireAdmin,
@@ -22,13 +22,13 @@ const generateInvoiceNumber = async () => {
 
   // find last request for the year
   const yearRequests = await query(
-    "SELECT requestNumber FROM requests WHERE requestNumber LIKE ? ORDER BY requestNumber DESC LIMIT 1",
-    [`OGL-%${yearShort}`]
+    "SELECT TOP(1) request_number FROM requests WHERE request_number LIKE ? ORDER BY request_number DESC",
+    [`OGL-%${yearShort}%`]
   );
 
   let nextNumber = 1;
   if (yearRequests.length > 0) {
-    const lastNumber = yearRequests[0].requestNumber;
+    const lastNumber = yearRequests[0].request_number;
     // expecting format OGL-<seq><yy>, e.g. OGL-0012323
     const match = lastNumber.match(/OGL-(\d+)(\d{2})/);
     if (match) {
@@ -45,7 +45,7 @@ const generateInvoiceNumber = async () => {
 router.get("/", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const requests = await query(`
-      SELECT r.*, u.firstName, u.lastName, u.email as userEmail, u.companyName 
+      SELECT r.*, u.firstName, u.lastName, u.email as userEmail, u.companyName
       FROM requests r 
       LEFT JOIN users u ON r.userId = u.id 
       ORDER BY r.createdAt DESC
@@ -102,6 +102,33 @@ router.get("/", authenticateToken, requireAdmin, async (req, res) => {
         customerName += " (Guest)";
       }
 
+      // Parse Azure SQL date format to ISO string
+      let formattedCreatedAt = new Date().toISOString(); // fallback
+      try {
+        const dateStr = request.createdAt.toString();
+        let parsedDate = new Date(dateStr);
+        if (isNaN(parsedDate.getTime())) {
+          // Handle Azure SQL format like "Sep 17 2025  1:12AM" (note the double space)
+          const parts = dateStr.match(/(\w+) (\d+) (\d+) +(\d+):(\d+)(\w+)/);
+          if (parts) {
+            const [, month, day, year, hour, minute, ampm] = parts;
+            const monthMap = {
+              'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+              'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+            };
+            let hour24 = parseInt(hour);
+            if (ampm === 'PM' && hour24 !== 12) hour24 += 12;
+            if (ampm === 'AM' && hour24 === 12) hour24 = 0;
+            parsedDate = new Date(year, monthMap[month], day, hour24, minute);
+          }
+        }
+        if (!isNaN(parsedDate.getTime())) {
+          formattedCreatedAt = parsedDate.toISOString();
+        }
+      } catch (error) {
+        console.error('Date parsing error:', error, 'for date:', request.createdAt);
+      }
+
       return {
         ...request,
         items: parsedItems,
@@ -110,6 +137,7 @@ router.get("/", authenticateToken, requireAdmin, async (req, res) => {
         customerName,
         customerEmail,
         isGuest,
+        createdAt: formattedCreatedAt,
       };
     });
 
@@ -169,15 +197,11 @@ router.post(
       const { items, totalAmount, notes, customerData } = req.body;
       const userId = req.user ? req.user.id : null;
 
-      // debug
-      console.log("Request submission debug:", {
-        hasUser: !!req.user,
-        userId,
-        userEmail: req.user?.email,
-        customerData,
-      });
+      // debug info removed for production
 
+      console.log("Generating invoice number...");
       const requestNumber = await generateInvoiceNumber();
+      console.log("Generated request number:", requestNumber);
 
       const pdfMetadata = {
         generated: false,
@@ -197,46 +221,68 @@ router.post(
       let finalUserId = userId;
       let finalCustomerData = customerData || null;
       if (!userId && customerData) {
-        finalUserId = `guest_${Date.now()}_${Math.random()
+        // For guest users, set userId to NULL and store guest info in customerData
+        finalUserId = null;
+        const guestId = `guest_${Date.now()}_${Math.random()
           .toString(36)
           .substr(2, 9)}`;
         finalCustomerData = {
           ...customerData,
           isGuest: true,
-          guestId: finalUserId,
+          guestId: guestId,
           submittedAt: new Date().toISOString(),
         };
-        console.log("Guest user request - generated ID:", finalUserId);
+        // debug info removed for production
       }
 
       const customerEmail = customerData?.email || null;
       const customerPhone = customerData?.phone || null;
       const companyName = customerData?.companyName || null;
 
-      const result = await query(
+      console.log("Inserting request into database...");
+      console.log("Insert data:", {
+        finalUserId,
+        customerName,
+        customerEmail,
+        customerPhone,
+        companyName,
+        requestNumber,
+        totalAmount,
+        notes: notes || null,
+      });
+
+      const result = await run(
         `INSERT INTO requests (
-          userId, customerName, customerEmail, customerPhone, companyName, 
-          requestNumber, items, totalAmount, notes, customerData, pdfMetadata, 
-          status, createdAt, updatedAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+          userId, customerName, customerEmail, customerPhone, companyName,
+          items, totalAmount, status, notes, pdfPath, createdAt, updatedAt,
+          request_number, customerData, pdfMetadata
+        ) VALUES (
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, GETUTCDATE(), GETUTCDATE(),
+          ?, ?, ?
+        )`,
         [
           finalUserId,
           customerName,
           customerEmail,
           customerPhone,
           companyName,
-          requestNumber,
           JSON.stringify(items),
           totalAmount,
+          "pending",
           notes || null,
+          null, // pdfPath
+          requestNumber,
           finalCustomerData ? JSON.stringify(finalCustomerData) : null,
           JSON.stringify(pdfMetadata),
-          "pending",
         ]
       );
 
-      // Normalize insert id
-      const insertedId = result.insertId ?? result.lastID ?? null;
+      console.log("Request inserted successfully:", result);
+
+      // Get the inserted ID from the result
+      const insertedId = result.insertId ?? result.lastID ?? result.id ?? null;
+      console.log("Extracted insertedId:", insertedId);
 
       // Log activity (include item summary)
       await logActivity(
@@ -276,10 +322,10 @@ router.post(
           };
 
           try {
-            console.log("🔄 Starting PDF generation for confirmation email...");
+            // console.log("🔄 Starting PDF generation for confirmation email...");
             const pdfBuffer = await generateInvoicePDF(pdfData);
             console.log(
-              "✅ PDF generated successfully, size:",
+              // console.log(
               pdfBuffer.length
             );
 
@@ -292,7 +338,7 @@ router.post(
                 }`.trim(),
                 requestNumber,
                 totalAmount,
-                date: new Date().toLocaleDateString(),
+                date: new Date().toLocaleDateString("en-GB"),
                 status: "pending",
                 items: (items || []).map((item) => ({
                   name: item.name || `Product ${item.productId}`,
@@ -314,10 +360,6 @@ router.post(
               finalCustomerData.email
             );
           } catch (pdfError) {
-            console.error(
-              "❌ PDF generation failed, sending fallback email without PDF:",
-              pdfError
-            );
             // fallback: send email without PDF
             await sendEmail({
               to: finalCustomerData.email,
@@ -328,7 +370,7 @@ router.post(
                 }`.trim(),
                 requestNumber,
                 totalAmount,
-                date: new Date().toLocaleDateString(),
+                date: new Date().toLocaleDateString("en-GB"),
                 status: "pending",
                 items: (items || []).map((item) => ({
                   name: item.name || `Product ${item.productId}`,
@@ -343,14 +385,9 @@ router.post(
               finalCustomerData.email
             );
           }
-        } catch (emailError) {
-          console.error(
-            "❌ Request confirmation email failed completely:",
-            emailError
-          );
-        }
+        } catch (emailError) {}
       } else {
-        console.log("⚠️ No email sent - missing customer email.");
+        // console.log("⚠️ No email sent - missing customer email.");
       }
 
       return res.status(201).json({
@@ -370,9 +407,17 @@ router.post(
       });
     } catch (error) {
       console.error("Submit request error:", error);
-      return res
-        .status(500)
-        .json({ success: false, message: "Failed to submit request" });
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+      return res.status(500).json({
+        success: false,
+        message: "Failed to submit request",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
     }
   }
 );
@@ -388,7 +433,7 @@ router.post("/:requestNumber/user-pdf", optionalAuth, async (req, res) => {
       `SELECT r.*, u.firstName, u.lastName, u.email as userEmail, u.companyName 
        FROM requests r 
        LEFT JOIN users u ON r.userId = u.id 
-       WHERE r.requestNumber = ?`,
+       WHERE r.request_number = ?`,
       [requestNumber]
     );
 
@@ -442,7 +487,7 @@ router.post("/:requestNumber/user-pdf", optionalAuth, async (req, res) => {
     };
 
     await query(
-      'UPDATE requests SET pdfMetadata = ?, updatedAt = datetime("now") WHERE requestNumber = ?',
+      "UPDATE requests SET pdfMetadata = ?, updatedAt = GETUTCDATE() WHERE request_number = ?",
       [JSON.stringify(pdfMetadata), requestNumber]
     );
 
@@ -475,7 +520,7 @@ router.post("/:requestNumber/pdf-generated", optionalAuth, async (req, res) => {
     };
 
     await query(
-      'UPDATE requests SET pdfMetadata = ?, updatedAt = datetime("now") WHERE requestNumber = ?',
+      "UPDATE requests SET pdfMetadata = ?, updatedAt = GETUTCDATE() WHERE request_number = ?",
       [JSON.stringify(pdfMetadata), requestNumber]
     );
 
@@ -504,7 +549,7 @@ router.post(
         `SELECT r.*, u.firstName, u.lastName, u.email as userEmail, u.companyName 
        FROM requests r 
        LEFT JOIN users u ON r.userId = u.id 
-       WHERE r.requestNumber = ?`,
+       WHERE r.request_number = ?`,
         [requestNumber]
       );
 
@@ -564,13 +609,22 @@ router.post(
       pdfMetadata.adminDownloadedBy = req.user?.email || null;
 
       await query(
-        'UPDATE requests SET pdfMetadata = ?, updatedAt = datetime("now") WHERE requestNumber = ?',
+        "UPDATE requests SET pdfMetadata = ?, updatedAt = GETUTCDATE() WHERE request_number = ?",
         [JSON.stringify(pdfMetadata), requestNumber]
       );
 
       // create PDF and send as downloadable buffer
       try {
         console.log("🔄 Starting admin PDF generation...");
+        console.log("Admin invoice data:", {
+          invoiceNumber: adminInvoiceData.invoiceNumber,
+          customerName:
+            adminInvoiceData.customer?.firstName +
+            " " +
+            adminInvoiceData.customer?.lastName,
+          itemCount: adminInvoiceData.items?.length || 0,
+        });
+
         const pdfBuffer = await generateInvoicePDF(adminInvoiceData);
         console.log(
           "✅ Admin PDF generated successfully, size:",
@@ -608,9 +662,9 @@ router.post(
         res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         res.setHeader("Pragma", "no-cache");
         res.setHeader("Expires", "0");
-        
+
         // Ensure binary response
-        return res.end(pdfBuffer, 'binary');
+        return res.end(pdfBuffer, "binary");
       } catch (pdfError) {
         console.error("Admin PDF generation failed:", pdfError);
         return res
@@ -631,248 +685,247 @@ router.post(
  * User PDF generation + download (without admin stamp)
  * For authenticated users only - they can only download their own PDFs
  */
-router.post(
-  "/:requestNumber/user-pdf",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const { requestNumber } = req.params;
-      const userId = req.user.id;
-      
-      // Get the request - users can only download their own PDFs
-      const requests = await query(
-        `SELECT r.*, u.firstName, u.lastName, u.email as userEmail, u.companyName 
+router.post("/:requestNumber/user-pdf", authenticateToken, async (req, res) => {
+  try {
+    const { requestNumber } = req.params;
+    const userId = req.user.id;
+
+    // Get the request - users can only download their own PDFs
+    const requests = await query(
+      `SELECT r.*, u.firstName, u.lastName, u.email as userEmail, u.companyName 
        FROM requests r 
        LEFT JOIN users u ON r.userId = u.id 
-       WHERE r.requestNumber = ? AND r.userId = ?`,
-        [requestNumber, userId]
+       WHERE r.request_number = ? AND r.userId = ?`,
+      [requestNumber, userId]
+    );
+
+    if (requests.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found or access denied",
+      });
+    }
+
+    const request = requests[0];
+
+    let items = [];
+    let customerData = null;
+    try {
+      items = request.items ? JSON.parse(request.items) : [];
+      customerData = request.customerData
+        ? JSON.parse(request.customerData)
+        : null;
+    } catch (parseError) {
+      console.error("Error parsing request data:", parseError);
+      items = [];
+      customerData = null;
+    }
+
+    // Prepare invoice data for user PDF (no admin stamp)
+    const invoiceData = {
+      invoiceNumber: request.request_number,
+      customer: customerData || {
+        firstName: request.firstName || "Unknown",
+        lastName: request.lastName || "User",
+        email: request.userEmail || "No email",
+        phone: "Not provided",
+        companyName: request.companyName || "Not provided",
+        companyType: "Not specified",
+        companyRole: "Not specified",
+      },
+      items: items.map((item) => ({
+        name: item.name || `Product ${item.productId}`,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      totalAmount: request.totalAmount,
+      submittedAt: request.createdAt,
+      status: request.status,
+    };
+
+    try {
+      const pdfBuffer = await generateInvoicePDF(invoiceData, false); // false = no admin stamp
+
+      // Log activity
+      await logActivity(
+        req.user.id,
+        "user_pdf_downloaded",
+        "request",
+        request.id,
+        "User downloaded PDF invoice",
+        req,
+        {
+          requestNumber,
+          totalAmount: request.totalAmount,
+          itemCount: Array.isArray(items) ? items.length : 0,
+        }
       );
 
-      if (requests.length === 0) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Request not found or access denied" });
-      }
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="Proforma_Invoice_${requestNumber}.pdf"`
+      );
+      res.setHeader("Content-Length", pdfBuffer.length);
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
 
-      const request = requests[0];
-
-      let items = [];
-      let customerData = null;
-      try {
-        items = request.items ? JSON.parse(request.items) : [];
-        customerData = request.customerData ? JSON.parse(request.customerData) : null;
-      } catch (parseError) {
-        console.error("Error parsing request data:", parseError);
-        items = [];
-        customerData = null;
-      }
-
-      // Prepare invoice data for user PDF (no admin stamp)
-      const invoiceData = {
-        invoiceNumber: request.requestNumber,
-        customer: customerData || {
-          firstName: request.firstName || 'Unknown',
-          lastName: request.lastName || 'User',
-          email: request.userEmail || 'No email',
-          phone: 'Not provided',
-          companyName: request.companyName || 'Not provided',
-          companyType: 'Not specified',
-          companyRole: 'Not specified'
-        },
-        items: items.map(item => ({
-          name: item.name || `Product ${item.productId}`,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-        totalAmount: request.totalAmount,
-        submittedAt: request.createdAt,
-        status: request.status
-      };
-
-      try {
-        const pdfBuffer = await generateInvoicePDF(invoiceData, false); // false = no admin stamp
-
-        // Log activity
-        await logActivity(
-          req.user.id,
-          "user_pdf_downloaded",
-          "request",
-          request.id,
-          "User downloaded PDF invoice",
-          req,
-          {
-            requestNumber,
-            totalAmount: request.totalAmount,
-            itemCount: Array.isArray(items) ? items.length : 0,
-          }
-        );
-
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader(
-          "Content-Disposition",
-          `attachment; filename="Proforma_Invoice_${requestNumber}.pdf"`
-        );
-        res.setHeader("Content-Length", pdfBuffer.length);
-        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        res.setHeader("Pragma", "no-cache");
-        res.setHeader("Expires", "0");
-        
-        // Ensure binary response
-        return res.end(pdfBuffer, 'binary');
-      } catch (pdfError) {
-        console.error("User PDF generation failed:", pdfError);
-        return res
-          .status(500)
-          .json({ success: false, message: "Failed to generate PDF" });
-      }
-    } catch (error) {
-      console.error("User PDF generation error:", error);
+      // Ensure binary response
+      return res.end(pdfBuffer, "binary");
+    } catch (pdfError) {
+      console.error("User PDF generation failed:", pdfError);
       return res
         .status(500)
         .json({ success: false, message: "Failed to generate PDF" });
     }
+  } catch (error) {
+    console.error("User PDF generation error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to generate PDF" });
   }
-);
+});
 
 /**
  * POST /:requestNumber/public-pdf
  * Public PDF generation for guest users
  * Requires email verification for security
  */
-router.post(
-  "/:requestNumber/public-pdf",
-  async (req, res) => {
-    try {
-      const { requestNumber } = req.params;
-      const { email } = req.body;
-      
-      if (!email) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Email is required for PDF download" 
-        });
-      }
+router.post("/:requestNumber/public-pdf", async (req, res) => {
+  try {
+    const { requestNumber } = req.params;
+    const { email } = req.body;
 
-      // Get the request - verify email matches the request
-      const requests = await query(
-        `SELECT r.*, COALESCE(u.firstName, JSON_EXTRACT(r.customerData, '$.firstName')) as firstName,
-         COALESCE(u.lastName, JSON_EXTRACT(r.customerData, '$.lastName')) as lastName,
-         COALESCE(u.email, JSON_EXTRACT(r.customerData, '$.email')) as userEmail,
-         COALESCE(u.companyName, JSON_EXTRACT(r.customerData, '$.companyName')) as companyName
-         FROM requests r 
-         LEFT JOIN users u ON r.userId = u.id 
-         WHERE r.requestNumber = ?`,
-        [requestNumber]
-      );
-      
-      if (requests.length === 0) {
-        return res.status(404).json({ 
-          success: false, 
-          message: "Request not found" 
-        });
-      }
-
-      const request = requests[0];
-      
-      // Extract email from request data
-      let requestEmail = request.userEmail;
-      if (!requestEmail && request.customerData) {
-        try {
-          const customerData = JSON.parse(request.customerData);
-          requestEmail = customerData.email;
-        } catch (e) {
-          console.error('Error parsing customer data:', e);
-        }
-      }
-
-      // Verify email matches (case insensitive)
-      if (!requestEmail || requestEmail.toLowerCase() !== email.toLowerCase()) {
-        return res.status(403).json({ 
-          success: false, 
-          message: "Email does not match the request" 
-        });
-      }
-
-      // Parse request data
-      let items = [];
-      let customerData = null;
-      try {
-        items = request.items ? JSON.parse(request.items) : [];
-        customerData = request.customerData ? JSON.parse(request.customerData) : null;
-      } catch (parseError) {
-        console.error("Error parsing request data:", parseError);
-        items = [];
-        customerData = null;
-      }
-
-      // Prepare invoice data
-      const invoiceData = {
-        invoiceNumber: request.requestNumber,
-        customer: customerData || {
-          firstName: request.firstName || 'Unknown',
-          lastName: request.lastName || 'User',
-          email: requestEmail,
-          phone: 'Not provided',
-          companyName: request.companyName || 'Not provided',
-          companyType: 'Not specified',
-          companyRole: 'Not specified'
-        },
-        items: items.map(item => ({
-          name: item.name || `Product ${item.productId}`,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-        totalAmount: request.totalAmount,
-        submittedAt: request.createdAt,
-        status: request.status
-      };
-
-      try {
-        const pdfBuffer = await generateInvoicePDF(invoiceData, false);
-
-        // Log activity (no user ID for guest downloads)
-        await logActivity(
-          null,
-          "public_pdf_downloaded",
-          "request",
-          request.id,
-          "Public PDF downloaded via email verification",
-          req,
-          {
-            requestNumber,
-            email: email,
-            totalAmount: request.totalAmount,
-            itemCount: Array.isArray(items) ? items.length : 0,
-          }
-        );
-
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader(
-          "Content-Disposition",
-          `attachment; filename="Proforma_Invoice_${requestNumber}.pdf"`
-        );
-        res.setHeader("Content-Length", pdfBuffer.length);
-        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        res.setHeader("Pragma", "no-cache");
-        res.setHeader("Expires", "0");
-        
-        return res.end(pdfBuffer, 'binary');
-      } catch (pdfError) {
-        console.error("Public PDF generation failed:", pdfError);
-        return res.status(500).json({ 
-          success: false, 
-          message: "Failed to generate PDF" 
-        });
-      }
-    } catch (error) {
-      console.error("Public PDF generation error:", error);
-      return res.status(500).json({ 
-        success: false, 
-        message: "Failed to generate PDF" 
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required for PDF download",
       });
     }
+
+    // Get the request - verify email matches the request
+    const requests = await query(
+      `SELECT r.*, 
+         COALESCE(u.firstName, JSON_VALUE(r.customerData, '$.firstName')) as firstName,
+         COALESCE(u.lastName, JSON_VALUE(r.customerData, '$.lastName')) as lastName,
+         COALESCE(u.email, JSON_VALUE(r.customerData, '$.email')) as userEmail,
+         COALESCE(u.companyName, JSON_VALUE(r.customerData, '$.companyName')) as companyName
+         FROM requests r 
+         LEFT JOIN users u ON r.userId = u.id 
+         WHERE r.request_number = ?`,
+      [requestNumber]
+    );
+
+    if (requests.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found",
+      });
+    }
+
+    const request = requests[0];
+
+    // Extract email from request data
+    let requestEmail = request.userEmail;
+    if (!requestEmail && request.customerData) {
+      try {
+        const customerData = JSON.parse(request.customerData);
+        requestEmail = customerData.email;
+      } catch (e) {
+        console.error("Error parsing customer data:", e);
+      }
+    }
+
+    // Verify email matches (case insensitive)
+    if (!requestEmail || requestEmail.toLowerCase() !== email.toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        message: "Email does not match the request",
+      });
+    }
+
+    // Parse request data
+    let items = [];
+    let customerData = null;
+    try {
+      items = request.items ? JSON.parse(request.items) : [];
+      customerData = request.customerData
+        ? JSON.parse(request.customerData)
+        : null;
+    } catch (parseError) {
+      console.error("Error parsing request data:", parseError);
+      items = [];
+      customerData = null;
+    }
+
+    // Prepare invoice data
+    const invoiceData = {
+      invoiceNumber: request.request_number,
+      customer: customerData || {
+        firstName: request.firstName || "Unknown",
+        lastName: request.lastName || "User",
+        email: requestEmail,
+        phone: "Not provided",
+        companyName: request.companyName || "Not provided",
+        companyType: "Not specified",
+        companyRole: "Not specified",
+      },
+      items: items.map((item) => ({
+        name: item.name || `Product ${item.productId}`,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      totalAmount: request.totalAmount,
+      submittedAt: request.createdAt,
+      status: request.status,
+    };
+
+    try {
+      const pdfBuffer = await generateInvoicePDF(invoiceData, false);
+
+      // Log activity (no user ID for guest downloads)
+      await logActivity(
+        null,
+        "public_pdf_downloaded",
+        "request",
+        request.id,
+        "Public PDF downloaded via email verification",
+        req,
+        {
+          requestNumber,
+          email: email,
+          totalAmount: request.totalAmount,
+          itemCount: Array.isArray(items) ? items.length : 0,
+        }
+      );
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="Proforma_Invoice_${requestNumber}.pdf"`
+      );
+      res.setHeader("Content-Length", pdfBuffer.length);
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+
+      return res.end(pdfBuffer, "binary");
+    } catch (pdfError) {
+      console.error("Public PDF generation failed:", pdfError);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to generate PDF",
+      });
+    }
+  } catch (error) {
+    console.error("Public PDF generation error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate PDF",
+    });
   }
-);
+});
 
 /**
  * GET /:requestNumber/data - get request data for PDF generation (authenticated users only)
@@ -886,25 +939,27 @@ router.get("/:requestNumber/data", authenticateToken, async (req, res) => {
       `SELECT r.*, u.firstName, u.lastName, u.email as userEmail, u.companyName 
        FROM requests r 
        LEFT JOIN users u ON r.userId = u.id 
-       WHERE r.requestNumber = ? AND r.userId = ?`,
+       WHERE r.request_number = ? AND r.userId = ?`,
       [requestNumber, userId]
     );
 
     if (requests.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Request not found or access denied" 
+      return res.status(404).json({
+        success: false,
+        message: "Request not found or access denied",
       });
     }
 
     const request = requests[0];
-    
+
     // Parse JSON fields
     let items = [];
     let customerData = null;
     try {
       items = request.items ? JSON.parse(request.items) : [];
-      customerData = request.customerData ? JSON.parse(request.customerData) : null;
+      customerData = request.customerData
+        ? JSON.parse(request.customerData)
+        : null;
     } catch (parseError) {
       console.error("Error parsing request data:", parseError);
       items = [];
@@ -914,21 +969,21 @@ router.get("/:requestNumber/data", authenticateToken, async (req, res) => {
     return res.json({
       success: true,
       data: {
-        requestNumber: request.requestNumber,
+        requestNumber: request.request_number,
         items,
         customerData,
         totalAmount: request.totalAmount,
         createdAt: request.createdAt,
         status: request.status,
         customerName: request.customerName,
-        customerEmail: request.customerEmail
-      }
+        customerEmail: request.customerEmail,
+      },
     });
   } catch (error) {
     console.error("Get request data error:", error);
-    return res.status(500).json({ 
-      success: false, 
-      message: "Failed to get request data" 
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get request data",
     });
   }
 });
@@ -938,11 +993,6 @@ router.get("/:requestNumber/data", authenticateToken, async (req, res) => {
  */
 router.get("/my-requests", authenticateToken, async (req, res) => {
   try {
-    console.log("My-requests debug:", {
-      userId: req.user.id,
-      userEmail: req.user.email,
-    });
-
     const requests = await query(
       "SELECT * FROM requests WHERE userId = ? ORDER BY createdAt DESC",
       [req.user.id]
@@ -952,6 +1002,7 @@ router.get("/my-requests", authenticateToken, async (req, res) => {
       let items = [];
       let customerData = null;
       let pdfMetadata = null;
+      
       try {
         items = request.items ? JSON.parse(request.items) : [];
       } catch (e) {
@@ -971,7 +1022,37 @@ router.get("/my-requests", authenticateToken, async (req, res) => {
       } catch (e) {
         pdfMetadata = null;
       }
-      return { ...request, items, customerData, pdfMetadata };
+
+      // Parse Azure SQL date format to ISO string
+      let formattedCreatedAt = new Date().toISOString(); // fallback
+      try {
+        const dateStr = request.createdAt.toString();
+        let parsedDate = new Date(dateStr);
+        if (isNaN(parsedDate.getTime())) {
+          // Handle Azure SQL date format like "Sep 17 2025  1:12AM"
+          const parts = dateStr.match(/(\w+) (\d+) (\d+) (\d+):(\d+)(\w+)/);
+          if (parts) {
+            const [, month, day, year, hour, minute, ampm] = parts;
+            const monthMap = {
+              'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+              'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+            };
+            let hour24 = parseInt(hour);
+            if (ampm === 'PM' && hour24 !== 12) hour24 += 12;
+            if (ampm === 'AM' && hour24 === 12) hour24 = 0;
+            parsedDate = new Date(year, monthMap[month], day, hour24, minute);
+          }
+        }
+        if (!isNaN(parsedDate.getTime())) {
+          formattedCreatedAt = parsedDate.toISOString();
+        }
+      } catch (error) {
+        console.error('Date parsing error:', error, 'for date:', request.createdAt);
+        // Use the raw createdAt if parsing fails
+        formattedCreatedAt = request.createdAt;
+      }
+
+      return { ...request, items, customerData, pdfMetadata, formattedCreatedAt };
     });
 
     return res.json({ success: true, data: formattedRequests });
@@ -1132,7 +1213,7 @@ router.put(
 
       // update status
       await query(
-        "UPDATE requests SET status = ?, notes = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE requests SET status = ?, notes = ?, updatedAt = GETUTCDATE() WHERE id = ?",
         [status, notes || null, id]
       );
 
@@ -1146,7 +1227,7 @@ router.put(
         req,
         {
           requestId: id,
-          requestNumber: request.requestNumber,
+          requestNumber: request.request_number,
           previousStatus: request.status,
           newStatus: status,
           notes: notes || null,
@@ -1155,35 +1236,33 @@ router.put(
       );
 
       // attempt to find customer email and send notification
+      let emailSent = false;
       try {
         console.log(
           "📧 Attempting to send status update email for request:",
-          request.requestNumber
+          request.request_number
         );
         let customerEmail = null;
         let customerName = null;
         let customerData = null;
 
-        if (
-          request.userId &&
-          typeof request.userId === "string" &&
-          request.userId.startsWith("guest_")
-        ) {
-          // guest user: read stored customerData
-          try {
-            customerData = request.customerData
-              ? JSON.parse(request.customerData)
-              : null;
+        // First try to get email from customerData JSON for guest users
+        try {
+          if (request.customerData) {
+            customerData = JSON.parse(request.customerData);
             if (customerData?.email) {
               customerEmail = customerData.email;
               customerName = `${customerData.firstName || ""} ${
                 customerData.lastName || ""
               }`.trim();
             }
-          } catch (e) {
-            console.error("Failed to parse guest customer data", e);
           }
-        } else if (request.userId) {
+        } catch (e) {
+          console.error("Failed to parse customer data:", e);
+        }
+
+        // If no email found and we have a userId, try to get from users table
+        if (!customerEmail && request.userId) {
           // logged in user: lookup user row
           const users = await query(
             "SELECT firstName, lastName, email FROM users WHERE id = ?",
@@ -1212,7 +1291,7 @@ router.put(
             // attach approved PDF
             const itemsForPdf = request.items ? JSON.parse(request.items) : [];
             const invoiceData = {
-              invoiceNumber: request.requestNumber,
+              invoiceNumber: request.request_number,
               customer: customerData,
               items: itemsForPdf,
               totalAmount: request.totalAmount,
@@ -1222,7 +1301,7 @@ router.put(
             try {
               const pdfBuffer = await generateInvoicePDF(invoiceData);
               attachments.push({
-                filename: `Proforma_Invoice_${request.requestNumber}_Approved.pdf`,
+                filename: `Proforma_Invoice_${request.request_number}_Approved.pdf`,
                 content: pdfBuffer,
                 contentType: "application/pdf",
               });
@@ -1236,15 +1315,16 @@ router.put(
             template: emailTemplate,
             data: {
               customerName,
-              requestNumber: request.requestNumber,
+              requestNumber: request.request_number,
               status: status.charAt(0).toUpperCase() + status.slice(1),
               notes: notes || "No additional notes provided.",
-              date: new Date().toLocaleDateString(),
+              date: new Date().toLocaleDateString("en-GB"),
             },
             ...(attachments.length ? { attachments } : {}),
           });
 
           console.log("✅ Status update email sent to:", customerEmail);
+          emailSent = true;
         } else {
           console.log(
             "⚠️ No customer email found for status update (requestId:",
@@ -1254,12 +1334,13 @@ router.put(
         }
       } catch (emailError) {
         console.error("Request status update email failed:", emailError);
+        emailSent = false;
       }
 
       return res.json({
         success: true,
         message: `Request ${status} successfully`,
-        emailSent: true,
+        emailSent: emailSent,
       });
     } catch (error) {
       console.error("Update request status error:", error);
@@ -1334,6 +1415,33 @@ router.get("/admin/all", authenticateToken, requireAdmin, async (req, res) => {
         isGuest = true;
       }
 
+      // Parse Azure SQL date format to ISO string
+      let formattedCreatedAt = new Date().toISOString(); // fallback
+      try {
+        const dateStr = request.createdAt.toString();
+        let parsedDate = new Date(dateStr);
+        if (isNaN(parsedDate.getTime())) {
+          // Handle Azure SQL format like "Sep 17 2025  1:12AM" (note the double space)
+          const parts = dateStr.match(/(\w+) (\d+) (\d+) +(\d+):(\d+)(\w+)/);
+          if (parts) {
+            const [, month, day, year, hour, minute, ampm] = parts;
+            const monthMap = {
+              'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+              'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+            };
+            let hour24 = parseInt(hour);
+            if (ampm === 'PM' && hour24 !== 12) hour24 += 12;
+            if (ampm === 'AM' && hour24 === 12) hour24 = 0;
+            parsedDate = new Date(year, monthMap[month], day, hour24, minute);
+          }
+        }
+        if (!isNaN(parsedDate.getTime())) {
+          formattedCreatedAt = parsedDate.toISOString();
+        }
+      } catch (error) {
+        console.error('Date parsing error:', error, 'for date:', request.createdAt);
+      }
+
       return {
         ...request,
         items: parsedItems,
@@ -1342,6 +1450,7 @@ router.get("/admin/all", authenticateToken, requireAdmin, async (req, res) => {
         customerName,
         customerEmail,
         isGuest,
+        createdAt: formattedCreatedAt,
       };
     });
 

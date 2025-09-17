@@ -15,20 +15,113 @@ const path = require("path");
 const pathToLetterhead = path.join(__dirname, "../images/OGLA_SHEA_lh.jpg");
 let letterheadDataUrl = "";
 try {
-  const imgBuffer = fs.readFileSync(pathToLetterhead);
-  letterheadDataUrl = `data:image/jpeg;base64,${imgBuffer.toString("base64")}`;
+  if (fs.existsSync(pathToLetterhead)) {
+    const imgBuffer = fs.readFileSync(pathToLetterhead);
+    letterheadDataUrl = `data:image/jpeg;base64,${imgBuffer.toString(
+      "base64"
+    )}`;
+  } else {
+    console.log("⚠️  Letterhead image not found at:", pathToLetterhead);
+  }
 } catch (e) {
   console.error("Could not read letterhead image:", e);
   letterheadDataUrl = "";
 }
 
+const generateRequestHTML = async (data) => {
+  // Create a professional HTML template for the request
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .request-info { margin-bottom: 20px; }
+        .products { margin: 20px 0; }
+        .footer { margin-top: 30px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; border: 1px solid #ddd; }
+        th { background-color: #f4f4f4; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Request Details</h1>
+        <p>Request #${data.requestId}</p>
+        <p>${data.date}</p>
+      </div>
+      
+      <div class="request-info">
+        <h2>Customer Information</h2>
+        <p><strong>Name:</strong> ${data.customerName}</p>
+        <p><strong>Email:</strong> ${data.customerEmail}</p>
+        <p><strong>Phone:</strong> ${data.customerPhone}</p>
+        <p><strong>Address:</strong> ${data.customerAddress}</p>
+        <p><strong>Status:</strong> ${data.status}</p>
+      </div>
+      
+      <div class="products">
+        <h2>Products</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Quantity</th>
+              <th>Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.products
+              .map(
+                (p) => `
+              <tr>
+                <td>${p.name}</td>
+                <td>${p.quantity}</td>
+                <td>$${p.price.toFixed(2)}</td>
+                <td>$${(p.quantity * p.price).toFixed(2)}</td>
+              </tr>
+            `
+              )
+              .join("")}
+          </tbody>
+        </table>
+        
+        <p><strong>Total Amount: $${data.totalAmount.toFixed(2)}</strong></p>
+      </div>
+      
+      ${
+        data.message
+          ? `
+        <div class="message">
+          <h2>Additional Information</h2>
+          <p>${data.message}</p>
+        </div>
+      `
+          : ""
+      }
+      
+      <div class="footer">
+        <p>Thank you for your business!</p>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 const generatePDF = async (htmlContent, options = {}) => {
   try {
     if (playwright) {
-      console.log("📄 Generating PDF with Playwright...");
-      const browser = await playwright.chromium.launch({ headless: true });
+      const browser = await playwright.chromium.launch({
+        headless: true,
+        timeout: 30000, // 30 second timeout
+      });
       const context = await browser.newContext();
       const page = await context.newPage();
+
+      // Set page timeout
+      page.setDefaultTimeout(30000);
       await page.setContent(htmlContent, { waitUntil: "networkidle" });
       // Wait for background images to load
       await page.waitForTimeout(2000);
@@ -43,21 +136,17 @@ const generatePDF = async (htmlContent, options = {}) => {
         preferCSSPageSize: true,
       });
       await browser.close();
-      
+
       // Validate PDF buffer
       if (!pdfBuffer || pdfBuffer.length === 0) {
         throw new Error("Generated PDF buffer is empty");
       }
-      
+
       // Check if it's a valid PDF
-      const pdfSignature = pdfBuffer.toString('ascii', 0, 4);
-      if (pdfSignature !== '%PDF') {
+      const pdfSignature = pdfBuffer.toString("ascii", 0, 4);
+      if (pdfSignature !== "%PDF") {
         throw new Error("Generated buffer is not a valid PDF");
       }
-      console.log(
-        "✅ PDF generated successfully with Playwright, size:",
-        pdfBuffer.length
-      );
       return pdfBuffer;
     } else {
       throw new Error("Playwright not available");
@@ -139,18 +228,12 @@ startxref
 %%EOF
     `;
     const buffer = Buffer.from(pdfContent, "utf8");
-    console.log("✅ Fallback PDF generated successfully, size:", buffer.length);
     return buffer;
   }
 };
 // Generate invoice PDF with letterhead
 const generateInvoicePDF = async (invoiceData) => {
   try {
-    console.log(
-      "🔄 Starting invoice PDF generation for:",
-      invoiceData.invoiceNumber
-    );
-
     // Use the top-level letterheadDataUrl
     const isAdmin = invoiceData.adminStamp;
 
@@ -368,7 +451,7 @@ const generateInvoicePDF = async (invoiceData) => {
             <div class="info-title">Invoice Details:</div>
             <div><strong>Date:</strong> ${new Date(
               invoiceData.submittedAt
-            ).toLocaleDateString()}</div>
+            ).toLocaleDateString("en-GB")}</div>
             <div><strong>Status:</strong> ${
               invoiceData.status || "PENDING"
             }</div>
@@ -453,12 +536,7 @@ const generateInvoicePDF = async (invoiceData) => {
     </html>
   `;
 
-    console.log("📄 HTML content prepared, calling generatePDF...");
     const pdfBuffer = await generatePDF(htmlContent);
-    console.log(
-      "✅ Invoice PDF generated successfully for:",
-      invoiceData.invoiceNumber
-    );
 
     return pdfBuffer;
   } catch (error) {

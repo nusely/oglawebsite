@@ -39,7 +39,6 @@ async function createSuperAdmin() {
         }
       );
     });
-    console.log("Super admin account created:", email);
     db.close();
   } catch (error) {
     console.error("Error creating super admin:", error);

@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+const { query } = require('../config/azure-database');
 
 /**
  * Activity Logger Utility
@@ -38,7 +38,7 @@ class ActivityLogger {
         `INSERT INTO user_activities (
           userId, activityType, activitySubtype, description, metadata, 
           ipAddress, userAgent, createdAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, GETUTCDATE())`,
         [
           userId,
           activityType,

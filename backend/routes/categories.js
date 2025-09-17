@@ -1,6 +1,6 @@
 const express = require('express');
 const { query: validatorQuery, body, validationResult } = require('express-validator');
-const { pool, query } = require('../config/database');
+const { pool, query } = require('../config/azure-database');
 const { authenticateToken, requireAdmin, optionalAuth } = require('../middleware/auth');
 const { single } = require('../middleware/upload');
 
@@ -237,17 +237,25 @@ router.post('/', authenticateToken, requireAdmin, single('image'), [
       image_url = `/uploads/images/${req.file.filename}`;
     }
 
-    // Insert new category
+    // Insert new category and get ID - Azure SQL compatible
     const result = await query(
-      'INSERT INTO categories (name, slug, description, image, isActive) VALUES (?, ?, ?, ?, ?)',
+      `INSERT INTO categories (name, slug, description, image, isActive) VALUES (?, ?, ?, ?, ?);
+       SELECT SCOPE_IDENTITY() as insertId;`,
       [name, slug, description || null, image_url, isActive !== false]
     );
+
+    // Get the insert ID from the result
+    const insertId = result && result.length > 0 ? result[result.length - 1].insertId : null;
+    
+    if (!insertId) {
+      throw new Error('Failed to get category ID after creation');
+    }
 
     res.status(201).json({
       success: true,
       message: 'Category created successfully',
       data: {
-        id: result.insertId,
+        id: insertId,
         name,
         slug,
         description,

@@ -17,9 +17,7 @@ async function clearForProduction() {
       await run("DELETE FROM stories WHERE id != ?;", [featuredStoryId]);
 
       // Clear all users except admin and super_admin
-      await run(
-        "DELETE FROM users WHERE role NOT IN ('admin', 'super_admin');"
-      );
+      await run("DELETE FROM users WHERE role NOT IN ('admin', 'super_admin');");
 
       // Clear all activities
       await run("DELETE FROM activities;");
@@ -28,10 +26,7 @@ async function clearForProduction() {
       const year = new Date().getFullYear();
       const yearShort = year.toString().slice(-2);
       const customInvoiceSeq = 0; // start from 0
-      const customInvoiceNumber = `OGL-${String(customInvoiceSeq).padStart(
-        3,
-        "0"
-      )}${yearShort}`;
+      const customInvoiceNumber = `OGL-${String(customInvoiceSeq).padStart(3, "0")}${yearShort}`;
 
       await run(
         `INSERT INTO requests (
@@ -49,7 +44,7 @@ async function clearForProduction() {
           "dummy@example.com",
           JSON.stringify([]),
           0,
-          "pending",
+          "pending"
         ]
       );
     });

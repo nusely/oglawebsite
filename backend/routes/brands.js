@@ -1,6 +1,6 @@
 const express = require('express');
 const { query: validatorQuery, body, validationResult } = require('express-validator');
-const { pool, query } = require('../config/database');
+const { pool, query } = require('../config/azure-database');
 const { authenticateToken, requireAdmin, optionalAuth } = require('../middleware/auth');
 const { uploadBrandLogo } = require('../config/cloudinary');
 
@@ -288,17 +288,25 @@ router.post('/', authenticateToken, requireAdmin, uploadBrandLogo.single('logo')
       logo_url = req.file.path; // Cloudinary URL
     }
 
-    // Insert new brand
+    // Insert new brand and get ID - Azure SQL compatible
     const result = await query(
-      'INSERT INTO brands (name, slug, description, logo_url, website_url, isActive) VALUES (?, ?, ?, ?, ?, ?)',
+      `INSERT INTO brands (name, slug, description, logo_url, website_url, isActive) VALUES (?, ?, ?, ?, ?, ?);
+       SELECT SCOPE_IDENTITY() as insertId;`,
       [name, slug, description || null, logo_url, website_url || null, isActive !== false]
     );
+
+    // Get the insert ID from the result
+    const insertId = result && result.length > 0 ? result[result.length - 1].insertId : null;
+    
+    if (!insertId) {
+      throw new Error('Failed to get brand ID after creation');
+    }
 
     res.status(201).json({
       success: true,
       message: 'Brand created successfully',
       data: {
-        id: result.insertId,
+        id: insertId,
         name,
         slug,
         description,

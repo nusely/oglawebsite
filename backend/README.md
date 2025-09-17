@@ -12,12 +12,12 @@ A Node.js/Express backend API for the Ogla Shea Butter e-commerce platform.
 - **Email System**: Transactional emails with templates
 - **File Upload**: Image upload and management
 - **Security**: Rate limiting, input validation, CORS protection
-- **Database**: MySQL with connection pooling
+- **Database**: Azure SQL Database with connection pooling
 
 ## 📋 Prerequisites
 
 - Node.js (v14 or higher)
-- MySQL (v8.0 or higher)
+- Azure SQL Database access
 - npm or yarn
 
 ## 🛠️ Installation
@@ -45,12 +45,13 @@ A Node.js/Express backend API for the Ogla Shea Butter e-commerce platform.
    NODE_ENV=development
    FRONTEND_URL=http://localhost:3000
 
-   # Database Configuration
-   DB_HOST=localhost
-   DB_USER=root
-   DB_PASSWORD=your_password
-   DB_NAME=ogla_db
-   DB_PORT=3306
+   # Database Configuration (Azure SQL)
+   DB_SERVER=your-server.database.windows.net
+   DB_DATABASE=your-database-name
+   DB_USER=your-username
+   DB_PASSWORD=your-password
+   DB_ENCRYPT=true
+   DB_TRUST_SERVER_CERTIFICATE=false
 
    # JWT Configuration
    JWT_SECRET=your_super_secret_jwt_key_here
@@ -75,10 +76,10 @@ A Node.js/Express backend API for the Ogla Shea Butter e-commerce platform.
    BCRYPT_ROUNDS=12
    ```
 
-4. **Set up MySQL database**
-   ```sql
-   CREATE DATABASE ogla_db;
-   ```
+4. **Set up Azure SQL Database**
+   - Create an Azure SQL Database instance
+   - Configure firewall rules to allow your IP
+   - Note down connection details for environment variables
 
 5. **Initialize database tables**
    ```bash

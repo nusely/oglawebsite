@@ -1,6 +1,6 @@
 const express = require('express');
 const { body, query: validatorQuery, validationResult } = require('express-validator');
-const { pool, query } = require('../config/database');
+const { pool, query } = require('../config/azure-database');
 const { authenticateToken, requireAdmin, optionalAuth } = require('../middleware/auth');
 const { uploadProductImage, deleteImage } = require('../config/cloudinary');
 const { logActivity } = require('./activities');
@@ -479,12 +479,13 @@ router.post('/', uploadProductImage.fields([
       });
     }
 
-    // Insert new product
+    // Insert new product and get the ID - Azure SQL compatible
     const result = await query(
       `INSERT INTO products (
         name, slug, brandId, categoryId, description, shortDescription,
         images, specifications, pricing, variants, isFeatured, isActive
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+      SELECT SCOPE_IDENTITY() as insertId;`,
       [
         name,
         slug,
@@ -501,8 +502,15 @@ router.post('/', uploadProductImage.fields([
       ]
     );
 
+    // Get the insert ID from the result
+    const insertId = result && result.length > 0 ? result[result.length - 1].insertId : null;
+    
+    if (!insertId) {
+      throw new Error('Failed to get product ID after creation');
+    }
+
     // Log product creation activity
-    await logActivity(req.user.id, 'product_created', 'product', result.insertId, 'Admin created new product', req, {
+    await logActivity(req.user.id, 'product_created', 'product', insertId, 'Admin created new product', req, {
       productName: name,
       slug: slug,
       brandId: brandId,
@@ -515,7 +523,7 @@ router.post('/', uploadProductImage.fields([
       success: true,
       message: 'Product created successfully',
       data: {
-        id: result.insertId,
+        id: insertId,
         slug
       }
     });

@@ -1,6 +1,6 @@
 const express = require("express");
 const { authenticateToken } = require("../middleware/auth");
-const { db, query, run } = require("../config/database");
+const { db, query, run } = require("../config/azure-database");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const { logActivity } = require("./activities");
@@ -28,35 +28,8 @@ const upload = multer({
   },
 });
 
-// Create brand_featured_products table if it doesn't exist
-const initializeBrandFeaturedProductsTable = async () => {
-  try {
-    await run(`
-      CREATE TABLE IF NOT EXISTS brand_featured_products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        brandId INTEGER NOT NULL,
-        productId INTEGER,
-        name TEXT NOT NULL,
-        description TEXT,
-        price TEXT NOT NULL,
-        image TEXT NOT NULL,
-        isActive BOOLEAN DEFAULT 1,
-        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (brandId) REFERENCES brands (id) ON DELETE CASCADE
-      )
-    `);
-    console.log("✅ Brand Featured Products table initialized");
-  } catch (error) {
-    console.error(
-      "❌ Error initializing brand featured products table:",
-      error
-    );
-  }
-};
-
-// Initialize table on module load
-initializeBrandFeaturedProductsTable();
+// Note: brand_featured_products table is now managed by Azure SQL schema
+// No need to initialize here as it's already created by the migration script
 
 /* -------------------------
    Helper: uploadToCloudinary
@@ -123,7 +96,8 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const featuredProduct = await query(`
+    const featuredProduct = await query(
+      `
       SELECT 
         bfp.*,
         b.name as brandName,
@@ -139,12 +113,14 @@ router.get("/:id", async (req, res) => {
       LEFT JOIN brands b ON bfp.brandId = b.id
       LEFT JOIN products p ON bfp.productId = p.id
       WHERE bfp.id = ? AND bfp.isActive = 1
-    `, [id]);
+    `,
+      [id]
+    );
 
     if (featuredProduct.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Featured product not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Featured product not found",
       });
     }
 
@@ -192,32 +168,33 @@ router.get("/:id", async (req, res) => {
     }
 
     // If it's a linked product, use product data, otherwise use featured product data
-    const finalProduct = product.productId ? {
-      ...product,
-      name: product.productName || product.name,
-      description: product.description,
-      price: product.price,
-      image: product.images?.[0] || product.image,
-      brandId: product.brandId
-    } : {
-      ...product,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      image: product.image,
-      brandId: product.brandId
-    };
+    const finalProduct = product.productId
+      ? {
+          ...product,
+          name: product.productName || product.name,
+          description: product.description,
+          price: product.price,
+          image: product.images?.[0] || product.image,
+          brandId: product.brandId,
+        }
+      : {
+          ...product,
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          image: product.image,
+          brandId: product.brandId,
+        };
 
     res.json({
       success: true,
-      data: { featuredProduct: finalProduct }
+      data: { featuredProduct: finalProduct },
     });
-
   } catch (error) {
     console.error("Error fetching featured product:", error);
     res.status(500).json({
       success: false,
-      message: "Error fetching featured product"
+      message: "Error fetching featured product",
     });
   }
 });
@@ -254,29 +231,38 @@ router.get("/brand/:brandSlug", async (req, res) => {
     let featuredProduct = null;
     if (rows.length > 0) {
       const row = rows[0];
-      
+
       // Handle both standalone featured products and linked products
       if (row.productId) {
         // This is a linked product - use product data
-        const productImages = row.productImages ? JSON.parse(row.productImages) : [];
-        const productPricing = row.productPricing ? JSON.parse(row.productPricing) : {};
-        
+        const productImages = row.productImages
+          ? JSON.parse(row.productImages)
+          : [];
+        const productPricing = row.productPricing
+          ? JSON.parse(row.productPricing)
+          : {};
+
         featuredProduct = {
           id: row.id,
           productId: row.productId,
           brandId: row.brandId,
           name: row.productName,
           description: row.productDescription,
-          image: productImages.length > 0 ? productImages[0] : '/images/placeholder.jpg',
+          image:
+            productImages.length > 0
+              ? productImages[0]
+              : "/images/placeholder.jpg",
           images: productImages,
           pricing: productPricing,
-          price: productPricing.base ? `₵${productPricing.base}` : 'Contact for pricing',
+          price: productPricing.base
+            ? `₵${productPricing.base}`
+            : "Contact for pricing",
           slug: row.productSlug,
           brandName: row.brandName,
           brandSlug: row.brandSlug,
           discount: row.discount,
           isActive: row.isActive,
-          createdAt: row.createdAt
+          createdAt: row.createdAt,
         };
       } else {
         // This is a standalone featured product - use featured product data
@@ -286,16 +272,16 @@ router.get("/brand/:brandSlug", async (req, res) => {
           brandId: row.brandId,
           name: row.name,
           description: row.description,
-          image: row.image || '/images/placeholder.jpg',
+          image: row.image || "/images/placeholder.jpg",
           images: row.image ? [row.image] : [],
           pricing: { base: parseFloat(row.price) || 0 },
-          price: row.price ? `₵${row.price}` : 'Contact for pricing',
+          price: row.price ? `₵${row.price}` : "Contact for pricing",
           slug: null,
           brandName: row.brandName,
           brandSlug: row.brandSlug,
           discount: row.discount,
           isActive: row.isActive,
-          createdAt: row.createdAt
+          createdAt: row.createdAt,
         };
       }
     }
@@ -350,16 +336,18 @@ router.get(
       );
 
       // Format products to handle JSON fields
-      const formattedProducts = products.map(product => {
-        const parsedPricing = product.pricing ? JSON.parse(product.pricing) : {};
+      const formattedProducts = products.map((product) => {
+        const parsedPricing = product.pricing
+          ? JSON.parse(product.pricing)
+          : {};
         const parsedImages = product.images ? JSON.parse(product.images) : [];
-        
+
         return {
           ...product,
           pricing: parsedPricing,
           price: parsedPricing.base || 0, // Add simple price field for frontend compatibility
           images: parsedImages,
-          mainImage: parsedImages.length > 0 ? parsedImages[0] : null // First image as main image
+          mainImage: parsedImages.length > 0 ? parsedImages[0] : null, // First image as main image
         };
       });
 
@@ -447,7 +435,7 @@ router.post(
       const result = await run(
         `
       INSERT INTO brand_featured_products (brandId, productId, name, description, price, image, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES (?, ?, ?, ?, ?, ?, GETUTCDATE(), GETUTCDATE())
     `,
         [brandId, productId || null, name, description || null, price, imageUrl]
       );
@@ -546,7 +534,7 @@ router.put(
       await run(
         `
       UPDATE brand_featured_products 
-      SET brandId = ?, productId = ?, name = ?, description = ?, price = ?, image = ?, isActive = ?, updatedAt = CURRENT_TIMESTAMP
+      SET brandId = ?, productId = ?, name = ?, description = ?, price = ?, image = ?, isActive = ?, updatedAt = GETUTCDATE()
       WHERE id = ?
     `,
         [
